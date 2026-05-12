@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>期权损益分析 — Buy/Sell Call/Put</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0d1117;
+  --surface: #161b22;
+  --border:  #30363d;
+  --text:    #c9d1d9;
+  --muted:   #8b949e;
+  --accent:  #1f6feb;
+  --green:   #3fb950;
+  --red:     #f85149;
+  --blue:    #58a6ff;
+  --yellow:  #d29922;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hdr {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.hdr h1 { font-size: 14px; font-weight: 600; color: #f0f6fc; }
+.tag {
+  padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  background: rgba(31,111,235,.12); color: var(--accent);
+  border: 1px solid rgba(31,111,235,.3);
+}
+.tag.g { background: rgba(63,185,80,.1); color: var(--green); border-color: rgba(63,185,80,.3); }
+
+.layout { display: flex; flex: 1; overflow: hidden; }
+
+/* Sidebar */
+.sidebar {
+  width: 255px; flex-shrink: 0;
+  background: var(--surface); border-right: 1px solid var(--border);
+  padding: 14px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.sec {
+  font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--muted); margin-bottom: 7px;
+}
+
+.toggle {
+  display: flex; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 3px; gap: 2px;
+}
+.toggle button {
+  flex: 1; padding: 4px 6px; border: none; background: transparent;
+  color: var(--muted); font-size: 11px; font-weight: 500;
+  cursor: pointer; border-radius: 4px; transition: all .15s;
+}
+.toggle button.active { background: var(--accent); color: #fff; }
+
+.param { margin-bottom: 10px; }
+.ph { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.pname { font-size: 11.5px; color: var(--muted); }
+.pval  { font-size: 12px; font-weight: 700; color: #f0f6fc; font-variant-numeric: tabular-nums; }
+
+input[type=range] {
+  width: 100%; height: 3px; -webkit-appearance: none; appearance: none;
+  background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px;
+  background: var(--accent); border-radius: 50%; cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(31,111,235,.18);
+}
+
+.slist { display: flex; flex-direction: column; gap: 5px; }
+.sitem {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; user-select: none; transition: border-color .15s;
+}
+.sitem:hover { border-color: var(--muted); }
+.sdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sname { flex: 1; }
+.sname b { display: block; font-size: 11.5px; color: #f0f6fc; }
+.sname small { color: var(--muted); font-size: 10px; }
+.schk { width: 13px; height: 13px; accent-color: var(--accent); cursor: pointer; }
+
+/* Main */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.cwrap { flex: 1; padding: 14px 18px; position: relative; overflow: hidden; }
+
+/* Stats */
+.stats {
+  border-top: 1px solid var(--border); padding: 11px 18px;
+  background: var(--surface); flex-shrink: 0;
+}
+.sgrid { display: grid; grid-template-columns: repeat(4,1fr); gap: 9px; }
+.scard {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left-width: 3px; border-radius: 7px; padding: 9px 11px;
+}
+.scard .ctitle { font-size: 10px; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+.scard .cprice { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: 3px; }
+.scard .cmeta  { font-size: 10px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+.scard .cmeta b { color: var(--text); }
+.scard .cmeta .up { color: var(--green); }
+.scard .cmeta .dn { color: var(--red); }
+.greeks { display: flex; flex-wrap: wrap; gap: 3px; }
+.gr {
+  background: #21262d; border-radius: 3px; padding: 1px 5px;
+  font-size: 9.5px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.gr b { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>期权损益分析</h1>
+  <span class="tag">Buy / Sell · Call / Put</span>
+  <span class="tag g">Black-Scholes</span>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+
+    <div>
+      <div class="sec">视图模式</div>
+      <div class="toggle">
+        <button class="active" id="btnE" onclick="setMode('expiry')">到期损益</button>
+        <button id="btnC" onclick="setMode('current')">当前估值</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec">期权参数</div>
+
+      <div class="param">
+        <div class="ph"><span class="pname">现价 S</span><span class="pval" id="dS">100</span></div>
+        <input type="range" min="10" max="500" step="1" value="100"
+          oninput="p.S=+this.value; eid('dS').textContent=this.value; render()">
+      </div>
+
+      <div class="param">
+        <div class="ph"><span class="pname">行权价 K</span><span class="pval" id="dK">100</span></div>
+        <input type="range" min="10" max="500" step="1" value="100"
+          oninput="p.K=+this.value; eid('dK').textContent=this.value; render()">
+      </div>
+
+      <div class="param">
+        <div class="ph"><span class="pname">到期天数 T</span><span class="pval" id="dT">30 天</span></div>
+        <input type="range" min="1" max="365" step="1" value="30"
+          oninput="p.T=+this.value; eid('dT').textContent=this.value+' 天'; render()">
+      </div>
+
+      <div class="param">
+        <div class="ph"><span class="pname">波动率 σ</span><span class="pval" id="dSig">25%</span></div>
+        <input type="range" min="5" max="150" step="1" value="25"
+          oninput="p.sigma=this.value/100; eid('dSig').textContent=this.value+'%'; render()">
+      </div>
+
+      <div class="param">
+        <div class="ph"><span class="pname">无风险利率 r</span><span class="pval" id="dR">2.5%</span></div>
+        <input type="range" min="0" max="15" step="0.1" value="2.5"
+          oninput="p.r=this.value/100; eid('dR').textContent=(+this.value).toFixed(1)+'%'; render()">
+      </div>
+    </div>
+
+    <div>
+      <div class="sec">显示策略</div>
+      <div class="slist">
+        <label class="sitem">
+          <div class="sdot" style="background:var(--green)"></div>
+          <div class="sname"><b>买入看涨</b><small>Long Call · 看涨</small></div>
+          <input type="checkbox" class="schk" checked onchange="toggleVis('lc',this.checked)">
+        </label>
+        <label class="sitem">
+          <div class="sdot" style="background:var(--red)"></div>
+          <div class="sname"><b>卖出看涨</b><small>Short Call · 中性偏空</small></div>
+          <input type="checkbox" class="schk" checked onchange="toggleVis('sc',this.checked)">
+        </label>
+        <label class="sitem">
+          <div class="sdot" style="background:var(--blue)"></div>
+          <div class="sname"><b>买入看跌</b><small>Long Put · 看跌</small></div>
+          <input type="checkbox" class="schk" checked onchange="toggleVis('lp',this.checked)">
+        </label>
+        <label class="sitem">
+          <div class="sdot" style="background:var(--yellow)"></div>
+          <div class="sname"><b>卖出看跌</b><small>Short Put · 中性偏多</small></div>
+          <input type="checkbox" class="schk" checked onchange="toggleVis('sp',this.checked)">
+        </label>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="main">
+    <div class="cwrap"><canvas id="chart"></canvas></div>
+    <div class="stats">
+      <div class="sec" style="margin-bottom:9px">策略摘要 — Black-Scholes 理论定价</div>
+      <div class="sgrid" id="sgrid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const eid = s => document.getElementById(s);
+
+// ── Black-Scholes math ────────────────────────────────────────
+function erfApprox(x) {
+  const s = x < 0 ? -1 : 1;
+  x = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * x);
+  const poly = ((((1.061405429*t - 1.453152027)*t + 1.421413741)*t - 0.284496736)*t + 0.254829592)*t;
+  return s * (1 - poly * Math.exp(-x * x));
+}
+const Φ = x => 0.5 * (1 + erfApprox(x / Math.SQRT2));
+const φ = x => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+
+function bsPrice(S, K, T, r, σ, type) {
+  if (T < 1e-5) return type === 'call' ? Math.max(S-K, 0) : Math.max(K-S, 0);
+  const sqT = Math.sqrt(T);
+  const d1 = (Math.log(S / K) + (r + 0.5*σ*σ) * T) / (σ * sqT);
+  const d2 = d1 - σ * sqT;
+  return type === 'call'
+    ? S * Φ(d1) - K * Math.exp(-r*T) * Φ(d2)
+    : K * Math.exp(-r*T) * Φ(-d2) - S * Φ(-d1);
+}
+
+function calcGreeks(S, K, T, r, σ, type) {
+  if (T < 1e-5) return { Δ: type==='call'?(S>=K?1:0):(S<=K?-1:0), Γ:0, Θ:0, ν:0 };
+  const sqT = Math.sqrt(T);
+  const d1 = (Math.log(S / K) + (r + 0.5*σ*σ) * T) / (σ * sqT);
+  const d2 = d1 - σ * sqT;
+  const sg = type === 'call' ? 1 : -1;
+  const eRT = Math.exp(-r * T);
+  return {
+    Δ: sg * Φ(sg * d1),
+    Γ: φ(d1) / (S * σ * sqT),
+    Θ: (-(S * φ(d1) * σ) / (2 * sqT) - sg * r * K * eRT * Φ(sg * d2)) / 365,
+    ν: S * φ(d1) * sqT / 100
+  };
+}
+
+// ── State ─────────────────────────────────────────────────────
+const p   = { S: 100, K: 100, T: 30, r: 0.025, sigma: 0.25 };
+let mode  = 'expiry';
+const vis = { lc: true, sc: true, lp: true, sp: true };
+
+function setMode(m) {
+  mode = m;
+  eid('btnE').classList.toggle('active', m === 'expiry');
+  eid('btnC').classList.toggle('active', m === 'current');
+  chart.options.scales.x.title.text = m === 'expiry' ? '到期日股价' : '当前股价';
+  render();
+}
+
+function toggleVis(k, v) {
+  vis[k] = v;
+  chart.data.datasets.forEach(d => { if (d._k === k) d.hidden = !v; });
+  chart.update('none');
+}
+
+// ── Chart ─────────────────────────────────────────────────────
+const chart = new Chart(eid('chart').getContext('2d'), {
+  type: 'line',
+  data: { datasets: [] },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    parsing: false,
+    normalized: true,
+    interaction: { mode: 'index', intersect: false, axis: 'x' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1c2130',
+        titleColor: '#8b949e',
+        bodyColor: '#f0f6fc',
+        borderColor: '#30363d',
+        borderWidth: 1,
+        padding: 10,
+        callbacks: {
+          title: items => `股价  ¥${items[0].parsed.x.toFixed(2)}`,
+          label: item => {
+            const v = item.parsed.y;
+            return ` ${item.dataset.label}:  ${v >= 0 ? '+' : ''}${v.toFixed(4)}`;
+          },
+          labelColor: item => ({
+            borderColor: item.dataset.borderColor,
+            backgroundColor: item.dataset.borderColor,
+          })
+        }
+      },
+      annotation: {
+        annotations: {
+          spotLine: {
+            type: 'line', scaleID: 'x', value: 100,
+            borderColor: 'rgba(139,148,158,.7)', borderWidth: 1.5, borderDash: [5,4],
+            label: {
+              display: true, content: '现价 S', position: 'start',
+              color: '#8b949e', font: { size: 10 },
+              backgroundColor: 'rgba(13,17,23,.85)', padding: { x: 4, y: 2 },
+              yAdjust: 6,
+            }
+          },
+          strikeLine: {
+            type: 'line', scaleID: 'x', value: 100,
+            borderColor: 'rgba(110,118,129,.5)', borderWidth: 1, borderDash: [3,5],
+            label: {
+              display: true, content: '行权价 K', position: 'end',
+              color: '#6e7681', font: { size: 10 },
+              backgroundColor: 'rgba(13,17,23,.85)', padding: { x: 4, y: 2 },
+              yAdjust: -6,
+            }
+          },
+          zeroLine: {
+            type: 'line', scaleID: 'y', value: 0,
+            borderColor: 'rgba(48,54,61,.9)', borderWidth: 1,
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'linear',
+        grid: { color: '#21262d' },
+        ticks: { color: '#8b949e', maxTicksLimit: 9, callback: v => `¥${v.toFixed(0)}` },
+        title: { display: true, text: '到期日股价', color: '#8b949e', font: { size: 11 } }
+      },
+      y: {
+        grid: { color: '#21262d' },
+        ticks: {
+          color: '#8b949e',
+          callback: v => v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1)
+        },
+        title: { display: true, text: '盈亏 (元 / 份)', color: '#8b949e', font: { size: 11 } }
+      }
+    }
+  }
+});
+
+// ── Render ────────────────────────────────────────────────────
+function render() {
+  const { S, K, r, sigma } = p;
+  const T = p.T / 365;
+
+  const callP = bsPrice(S, K, T, r, sigma, 'call');
+  const putP  = bsPrice(S, K, T, r, sigma, 'put');
+
+  const N = 300, lo = S * 0.4, hi = S * 1.6;
+  const prices = Array.from({ length: N }, (_, i) => lo + (hi - lo) * i / (N-1));
+
+  function pnl(s, type, premium, sign) {
+    if (mode === 'expiry') {
+      const iv = type === 'call' ? Math.max(s - K, 0) : Math.max(K - s, 0);
+      return sign * (iv - premium);
+    }
+    return sign * (bsPrice(s, K, T, r, sigma, type) - premium);
+  }
+
+  const defs = [
+    { _k:'lc', label:'买入看涨 Long Call',  color:'#3fb950', type:'call', sign:+1, prem:callP },
+    { _k:'sc', label:'卖出看涨 Short Call', color:'#f85149', type:'call', sign:-1, prem:callP },
+    { _k:'lp', label:'买入看跌 Long Put',   color:'#58a6ff', type:'put',  sign:+1, prem:putP  },
+    { _k:'sp', label:'卖出看跌 Short Put',  color:'#d29922', type:'put',  sign:-1, prem:putP  },
+  ];
+
+  chart.data.datasets = defs.map(d => ({
+    _k: d._k,
+    label: d.label,
+    data: prices.map(s => ({ x: s, y: pnl(s, d.type, d.prem, d.sign) })),
+    borderColor: d.color,
+    borderWidth: 2,
+    pointRadius: 0,
+    hidden: !vis[d._k],
+    fill: false,
+    tension: 0.05,
+  }));
+
+  const ann = chart.options.plugins.annotation.annotations;
+  ann.spotLine.value          = S;
+  ann.spotLine.label.content  = `现价 ${S}`;
+  ann.strikeLine.value        = K;
+  ann.strikeLine.label.content = `行权价 ${K}`;
+
+  chart.update('none');
+  renderStats(S, K, T, r, sigma, callP, putP);
+}
+
+// ── Stats cards ───────────────────────────────────────────────
+function renderStats(S, K, T, r, σ, callP, putP) {
+  const gc = calcGreeks(S, K, T, r, σ, 'call');
+  const gp = calcGreeks(S, K, T, r, σ, 'put');
+
+  const fmt  = v => v.toFixed(4);
+  const fmtG = (lbl, v) =>
+    `<div class="gr">${lbl} <b>${v >= 0 ? '+' : ''}${v.toFixed(3)}</b></div>`;
+  const gRow = g => [fmtG('Δ',g.Δ), fmtG('Γ',g.Γ), fmtG('Θ',g.Θ), fmtG('ν',g.ν)].join('');
+
+  const beLC = K + callP;
+  const beLP = K - putP;
+
+  const cards = [
+    {
+      color: '#3fb950', title: '买入看涨 Long Call', price: callP,
+      prem:   `付出 ${fmt(callP)}`,
+      profit: `<span class="up">无限</span>`,
+      loss:   `<span class="dn">${(-callP).toFixed(4)}</span>`,
+      be: beLC.toFixed(2),
+      ghtml: gRow(gc),
+    },
+    {
+      color: '#f85149', title: '卖出看涨 Short Call', price: callP,
+      prem:   `收取 ${fmt(callP)}`,
+      profit: `<span class="up">+${fmt(callP)}</span>`,
+      loss:   `<span class="dn">无限</span>`,
+      be: beLC.toFixed(2),
+      ghtml: gRow({ Δ:-gc.Δ, Γ:-gc.Γ, Θ:-gc.Θ, ν:-gc.ν }),
+    },
+    {
+      color: '#58a6ff', title: '买入看跌 Long Put', price: putP,
+      prem:   `付出 ${fmt(putP)}`,
+      profit: `<span class="up">+${(K - putP).toFixed(4)}</span>`,
+      loss:   `<span class="dn">${(-putP).toFixed(4)}</span>`,
+      be: beLP.toFixed(2),
+      ghtml: gRow(gp),
+    },
+    {
+      color: '#d29922', title: '卖出看跌 Short Put', price: putP,
+      prem:   `收取 ${fmt(putP)}`,
+      profit: `<span class="up">+${fmt(putP)}</span>`,
+      loss:   `<span class="dn">${(putP - K).toFixed(4)}</span>`,
+      be: beLP.toFixed(2),
+      ghtml: gRow({ Δ:-gp.Δ, Γ:-gp.Γ, Θ:-gp.Θ, ν:-gp.ν }),
+    },
+  ];
+
+  eid('sgrid').innerHTML = cards.map(c => `
+    <div class="scard" style="border-left-color:${c.color}">
+      <div class="ctitle">${c.title}</div>
+      <div class="cprice" style="color:${c.color}">¥ ${c.price.toFixed(4)}</div>
+      <div class="cmeta">
+        <span>权利金 <b>${c.prem}</b></span>
+        <span>·</span>
+        <span>盈亏平衡 <b style="color:#f0f6fc">${c.be}</b></span>
+      </div>
+      <div class="cmeta">
+        <span>最大盈 ${c.profit}</span>
+        <span>·</span>
+        <span>最大亏 ${c.loss}</span>
+      </div>
+      <div class="greeks">${c.ghtml}</div>
+    </div>
+  `).join('');
+}
+
+render();
+</script>
+</body>
+</html>
