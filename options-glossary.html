@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>期权术语词典 — Greeks · BS 模型 · 波动率 · 策略术语</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --text: #c9d1d9; --muted: #8b949e; --accent: #1f6feb;
+  --green: #3fb950; --red: #f85149; --blue: #58a6ff; --yellow: #d29922;
+  --purple: #bc8cff; --orange: #f0883e; --teal: #39c5cf; --pink: #f778ba;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px; min-height: 100vh;
+}
+
+/* Header */
+.hdr {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 30;
+}
+.hdr h1 { font-size: 14px; font-weight: 600; color: #f0f6fc; }
+.tab-nav { display: flex; gap: 4px; margin-left: 20px; }
+.tab-nav a {
+  padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  color: var(--muted); text-decoration: none; border: 1px solid transparent;
+  transition: all .15s;
+}
+.tab-nav a:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.tab-nav a.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+.tag {
+  padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  background: rgba(247,120,186,.12); color: var(--pink);
+  border: 1px solid rgba(247,120,186,.3);
+}
+
+/* Layout: TOC sidebar + content */
+.layout {
+  display: flex; max-width: 1400px; margin: 0 auto;
+  align-items: flex-start;
+}
+.toc {
+  width: 230px; flex-shrink: 0; padding: 24px 14px 24px 20px;
+  position: sticky; top: 49px; max-height: calc(100vh - 49px);
+  overflow-y: auto; align-self: flex-start;
+}
+.toc h3 {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--muted);
+  margin: 14px 0 6px; padding-left: 4px;
+}
+.toc h3:first-child { margin-top: 0; }
+.toc a {
+  display: block; padding: 4px 8px; margin-bottom: 1px;
+  font-size: 11.5px; color: var(--muted); text-decoration: none;
+  border-radius: 4px; border-left: 2px solid transparent; transition: all .12s;
+}
+.toc a:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.toc a.active { color: #f0f6fc; background: rgba(31,111,235,.08); border-left-color: var(--accent); }
+.toc a .sym { color: var(--blue); margin-right: 6px; font-weight: 600; }
+.toc a code { font-family: 'Cascadia Code', Consolas, monospace; font-size: 10.5px; color: var(--green); margin-right: 6px; }
+
+.content {
+  flex: 1; min-width: 0; padding: 24px 24px 60px;
+}
+
+/* Intro */
+.intro {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 20px; margin-bottom: 28px; line-height: 1.7;
+}
+.intro h2 { font-size: 15px; color: #f0f6fc; margin-bottom: 8px; }
+.intro p { color: var(--muted); font-size: 12.5px; }
+.intro p b { color: var(--text); }
+
+/* Section heading */
+.sec-h {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 17px; font-weight: 600; color: #f0f6fc;
+  margin: 30px 0 14px; padding-top: 10px;
+  scroll-margin-top: 60px;
+}
+.sec-h .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 7px;
+  color: #fff; font-size: 12px; font-weight: 700;
+}
+
+/* Term card */
+.tcard {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 9px;
+  padding: 14px 16px; margin-bottom: 14px;
+  scroll-margin-top: 60px;
+}
+.tcard .th {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 14px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.tcard .th .name {
+  font-size: 14.5px; color: #f0f6fc; font-weight: 600;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.tcard .th .name .sym {
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-weight: 700; font-size: 16px;
+}
+.tcard .th .name .eng { font-size: 11.5px; color: var(--muted); font-weight: 400; }
+.tcard .th .badge {
+  padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;
+  background: rgba(255,255,255,.06); color: var(--muted);
+}
+
+.def { font-size: 12.5px; line-height: 1.7; color: var(--text); margin-bottom: 8px; }
+.def b { color: #f0f6fc; }
+
+.formula {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px 13px; margin: 8px 0;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 11.5px; color: var(--green); line-height: 1.7;
+  white-space: pre-wrap; overflow-x: auto;
+}
+.formula i { color: var(--blue); font-style: normal; }
+.formula u { color: var(--yellow); text-decoration: none; }
+
+.factors {
+  font-size: 11.5px; line-height: 1.7;
+}
+.factors .ft { color: var(--muted); font-weight: 600; font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 4px; }
+.factors table { width: 100%; border-collapse: collapse; margin: 4px 0; }
+.factors th, .factors td {
+  padding: 5px 9px; border: 1px solid var(--border); text-align: left;
+  font-size: 11.5px;
+}
+.factors th { background: var(--bg); color: var(--muted); font-weight: 600; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .04em; }
+.factors td { color: var(--text); }
+.factors td .up   { color: var(--green); font-weight: 600; }
+.factors td .dn   { color: var(--red); font-weight: 600; }
+.factors td .flat { color: var(--muted); font-weight: 600; }
+
+.tip {
+  font-size: 11.5px; line-height: 1.6; padding: 8px 11px; border-radius: 5px;
+  margin-top: 8px;
+}
+.tip.t  { background: rgba(63,185,80,.07);  border-left: 2px solid var(--green); color: #b8eac4; }
+.tip.w  { background: rgba(248,81,73,.07);  border-left: 2px solid var(--red); color: #ffb6b3; }
+.tip.i  { background: rgba(31,111,235,.07); border-left: 2px solid var(--accent); color: #b6cfff; }
+
+/* Greek-specific layout */
+.greek-card .th-row {
+  display: flex; gap: 16px; align-items: center; margin-bottom: 10px;
+}
+.greek-svg {
+  flex-shrink: 0; width: 220px; height: 100px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+}
+
+/* Compact grid for non-Greek terms */
+.tgrid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+}
+@media (max-width: 1100px) { .tgrid { grid-template-columns: 1fr; } }
+.tgrid .tcard { margin-bottom: 0; }
+
+/* Anchor styling */
+.anchor-jump { color: var(--blue); text-decoration: none; }
+.anchor-jump:hover { text-decoration: underline; }
+
+/* Math symbols inline */
+.mvar {
+  font-family: 'Cascadia Code', Consolas, monospace;
+  color: var(--blue); font-style: italic;
+}
+
+/* Foot */
+.foot {
+  margin-top: 32px; padding: 14px 16px;
+  background: var(--surface2); border: 1px dashed var(--border); border-radius: 8px;
+  font-size: 11.5px; color: var(--muted); line-height: 1.7;
+}
+.foot b { color: var(--text); }
+
+/* Hide TOC on narrow */
+@media (max-width: 880px) {
+  .toc { display: none; }
+  .content { padding: 18px 16px 60px; }
+}
+
+/* === Inline term cross-references === */
+.term {
+  border-bottom: 1px dotted rgba(88,166,255,.55);
+  cursor: help;
+  color: var(--text);
+  padding: 0 1px;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.term:hover {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+  background: rgba(88,166,255,.08);
+  border-radius: 2px;
+}
+.term[data-jump] { cursor: pointer; }
+
+/* Floating tooltip popup */
+.gloss-tip {
+  position: fixed; display: none;
+  max-width: 320px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 11.5px; line-height: 1.65;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  transform: translate(-50%, -100%);
+}
+.gloss-tip::after {
+  content: '';
+  position: absolute;
+  bottom: -5px; left: 50%;
+  width: 8px; height: 8px;
+  background: var(--surface2);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transform: translateX(-50%) rotate(45deg);
+}
+.gloss-tip .tip-jump {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--accent);
+  font-style: italic;
+}
+
+/* Highlight target card briefly after jump */
+.flash {
+  animation: flash 1.4s ease;
+}
+@keyframes flash {
+  0%   { box-shadow: 0 0 0 0 rgba(31,111,235,.6); }
+  20%  { box-shadow: 0 0 0 3px rgba(31,111,235,.6); }
+  100% { box-shadow: 0 0 0 0 rgba(31,111,235,0); }
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>期权术语词典</h1>
+  <div class="tab-nav">
+    <a href="options-glossary.html" class="active">术语词典</a>
+    <a href="options-guide.html">策略指南</a>
+    <a href="options-payoff.html">单腿策略</a>
+    <a href="options-strategy.html">组合策略</a>
+  </div>
+  <span class="tag">6 类 · 50+ 术语</span>
+</div>
+
+<div class="layout">
+
+  <!-- ========== TOC ========== -->
+  <nav class="toc" id="toc">
+    <h3>1 · 五大希腊字母</h3>
+    <a href="#delta"><span class="sym">Δ</span>Delta</a>
+    <a href="#gamma"><span class="sym">Γ</span>Gamma</a>
+    <a href="#theta"><span class="sym">Θ</span>Theta</a>
+    <a href="#vega"><span class="sym">ν</span>Vega</a>
+    <a href="#rho"><span class="sym">ρ</span>Rho</a>
+
+    <h3>2 · Black-Scholes</h3>
+    <a href="#bs-formula">定价公式</a>
+    <a href="#d1d2"><code>d₁ d₂</code>中间变量</a>
+    <a href="#nx">N(x) 累积分布</a>
+    <a href="#phi">φ(x) 概率密度</a>
+    <a href="#discount">折现因子</a>
+    <a href="#parity">Put-Call 平价</a>
+
+    <h3>3 · 期权基础</h3>
+    <a href="#call-put">Call / Put</a>
+    <a href="#spot">现价 S</a>
+    <a href="#strike">行权价 K</a>
+    <a href="#time">到期日 T</a>
+    <a href="#rate">无风险利率 r</a>
+    <a href="#premium">权利金</a>
+    <a href="#intrinsic">内在价值</a>
+    <a href="#timevalue">时间价值</a>
+    <a href="#moneyness">ITM / ATM / OTM</a>
+
+    <h3>4 · 波动率</h3>
+    <a href="#sigma">σ Sigma</a>
+    <a href="#iv">IV 隐含波动率</a>
+    <a href="#hv">HV 历史波动率</a>
+    <a href="#smile">波动率微笑</a>
+    <a href="#crush">Vol Crush</a>
+    <a href="#vix">VIX 恐慌指数</a>
+    <a href="#ivrank">IV Rank / Percentile</a>
+
+    <h3>5 · 策略术语</h3>
+    <a href="#longshort">Long / Short</a>
+    <a href="#spread">借方 / 贷方价差</a>
+    <a href="#breakeven">盈亏平衡点</a>
+    <a href="#covered">Covered Call</a>
+    <a href="#protective">Protective Put</a>
+    <a href="#csp">Cash-Secured Put</a>
+    <a href="#wheel">Wheel 轮策略</a>
+    <a href="#collar">Collar 领口</a>
+
+    <h3>6 · 风险与执行</h3>
+    <a href="#assignment">Assignment 指派</a>
+    <a href="#exercise">Exercise 行权</a>
+    <a href="#early">Early Exercise</a>
+    <a href="#amer-eu">美式 / 欧式</a>
+    <a href="#margin">Margin 保证金</a>
+    <a href="#pin">Pin Risk</a>
+    <a href="#hedge">Delta Hedge</a>
+  </nav>
+
+  <!-- ========== Content ========== -->
+  <main class="content">
+
+  <div class="intro">
+    <h2>关于本词典</h2>
+    <p>本页系统性整理仓库内三个交互式页面（<b>单腿策略</b> / <b>组合策略</b> / <b>策略指南</b>）所涉及的全部期权术语。每个术语包含 <b>含义解释</b>、<b>计算公式</b> 与 <b>影响因素</b>。希腊字母部分附直观 SVG 曲线图，方便理解形状随股价的变化规律。</p>
+    <p style="margin-top:6px">📐 公式约定：<span class="mvar">S</span> 标的现价，<span class="mvar">K</span> 行权价，<span class="mvar">T</span> 距到期年化时间，<span class="mvar">r</span> 无风险利率，<span class="mvar">σ</span> 波动率。</p>
+  </div>
+
+  <!-- ============================================================
+       Section 1: GREEKS
+       ============================================================ -->
+  <h2 class="sec-h" id="sec-greeks">
+    <span class="num" style="background:var(--accent)">1</span>
+    五大希腊字母 (Greeks)
+  </h2>
+  <p style="font-size:12px;color:var(--muted);margin:-8px 0 14px 38px">
+    希腊字母衡量期权价格对各风险因子的<b style="color:var(--text)">敏感度</b>，是期权定价与风险管理的核心。前四个使用频率最高。
+  </p>
+
+  <!-- Delta -->
+  <div class="tcard greek-card" id="delta" style="border-left-color:var(--green)">
+    <div class="th">
+      <div class="name"><span class="sym" style="color:var(--green)">Δ</span> Delta <span class="eng">— 价格敏感度</span></div>
+      <span class="badge" style="color:var(--green);background:rgba(63,185,80,.12)">一阶 · 方向</span>
+    </div>
+    <div class="th-row">
+      <svg class="greek-svg" viewBox="0 0 220 100">
+        <line x1="0" y1="80" x2="220" y2="80" stroke="#30363d" stroke-width="1"/>
+        <line x1="110" y1="0" x2="110" y2="100" stroke="#30363d" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="2" y="14" fill="#8b949e" font-size="9">+1.0</text>
+        <text x="2" y="84" fill="#8b949e" font-size="9">0</text>
+        <text x="100" y="96" fill="#8b949e" font-size="9">K</text>
+        <path d="M 5,80 C 70,80 95,72 110,50 C 125,28 155,15 215,15"
+              stroke="#3fb950" stroke-width="2" fill="none"/>
+        <text x="155" y="40" fill="#3fb950" font-size="10">Long Call</text>
+        <path d="M 5,15 C 65,15 90,28 110,50 C 130,72 145,80 215,80"
+              stroke="#58a6ff" stroke-width="2" fill="none" stroke-dasharray="4,3"/>
+        <text x="20" y="36" fill="#58a6ff" font-size="10">Long Put</text>
+      </svg>
+      <div class="def" style="flex:1">
+        <b>含义</b>：标的价格 <span class="mvar">S</span> 每变动 1 元，期权价格<b>变动多少</b>。也可解读为期权到期实值 (ITM) 的<b>近似概率</b>。<br>
+        <b>取值范围</b>：Long Call ∈ [0, +1]，Long Put ∈ [−1, 0]，Short 取相反符号。
+      </div>
+    </div>
+    <div class="formula">Δ_call = N(<i>d₁</i>)
+Δ_put  = N(<i>d₁</i>) − 1 = −N(−<i>d₁</i>)</div>
+    <div class="factors">
+      <div class="ft">影响因素</div>
+      <table>
+        <thead><tr><th>因素</th><th>变化</th><th>对 |Δ| 影响</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>价值状态</td><td>OTM → ATM → ITM</td><td><span class="up">↑</span></td><td>越深度 ITM，Δ 越接近 ±1（趋同标的）</td></tr>
+          <tr><td>到期时间 T</td><td>↓</td><td>ITM <span class="up">↑</span> · OTM <span class="dn">↓</span></td><td>临到期 ITM 期权 Δ 趋近 ±1，OTM 趋近 0</td></tr>
+          <tr><td>波动率 σ</td><td>↑</td><td>趋向 0.5</td><td>高波动让 OTM 也有"机会"，Δ 向 0.5 靠拢</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tip i">📌 <b>组合 Delta 可加和</b>：策略总 Δ = 各腿 Δ × 数量之和。<b>Delta 中性</b>（Σ Δ = 0）即不押方向，常用于做空波动率策略。</div>
+  </div>
+
+  <!-- Gamma -->
+  <div class="tcard greek-card" id="gamma" style="border-left-color:var(--blue)">
+    <div class="th">
+      <div class="name"><span class="sym" style="color:var(--blue)">Γ</span> Gamma <span class="eng">— Delta 的变化率</span></div>
+      <span class="badge" style="color:var(--blue);background:rgba(88,166,255,.12)">二阶 · 加速度</span>
+    </div>
+    <div class="th-row">
+      <svg class="greek-svg" viewBox="0 0 220 100">
+        <line x1="0" y1="85" x2="220" y2="85" stroke="#30363d" stroke-width="1"/>
+        <line x1="110" y1="0" x2="110" y2="100" stroke="#30363d" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="2" y="14" fill="#8b949e" font-size="9">+max</text>
+        <text x="2" y="89" fill="#8b949e" font-size="9">0</text>
+        <text x="100" y="98" fill="#8b949e" font-size="9">K</text>
+        <path d="M 5,85 C 60,85 85,82 100,30 C 105,15 115,15 120,30 C 135,82 160,85 215,85"
+              stroke="#58a6ff" stroke-width="2" fill="none"/>
+        <text x="80" y="22" fill="#58a6ff" font-size="10">Call/Put 同形</text>
+      </svg>
+      <div class="def" style="flex:1">
+        <b>含义</b>：标的每变动 1 元，<b>Delta 变化多少</b>。是 Delta 的"加速度"，反映 Delta 对冲的<b>难度</b>。<br>
+        <b>形状</b>：钟形曲线，在 ATM 附近最大；远离行权价时迅速衰减为 0。Long 期权 Γ &gt; 0，Short 期权 Γ &lt; 0。
+      </div>
+    </div>
+    <div class="formula">Γ = N′(<i>d₁</i>) / (S · σ · √T)   <u>(Call/Put 相同)</u></div>
+    <div class="factors">
+      <div class="ft">影响因素</div>
+      <table>
+        <thead><tr><th>因素</th><th>变化</th><th>对 Γ 影响</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>价值状态</td><td>ATM</td><td><span class="up">最大</span></td><td>Δ 在 ATM 变化最快</td></tr>
+          <tr><td>到期时间 T</td><td>↓</td><td>ATM <span class="up">↑↑</span> · 远离 K <span class="dn">↓</span></td><td>临到期 ATM Γ 爆炸，OTM Γ 趋零</td></tr>
+          <tr><td>波动率 σ</td><td>↑</td><td><span class="dn">↓</span></td><td>高波动使 Γ 钟形变扁平、向两端铺开</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tip w">⚠ <b>Gamma 风险</b>：Short Straddle / Iron Condor 等卖方策略 Γ &lt; 0，临近到期 Γ 急剧放大，标的<b>大幅跳空</b>会瞬间亏损。这就是"Gamma Risk"。</div>
+  </div>
+
+  <!-- Theta -->
+  <div class="tcard greek-card" id="theta" style="border-left-color:var(--red)">
+    <div class="th">
+      <div class="name"><span class="sym" style="color:var(--red)">Θ</span> Theta <span class="eng">— 时间衰减</span></div>
+      <span class="badge" style="color:var(--red);background:rgba(248,81,73,.12)">一阶 · 时间</span>
+    </div>
+    <div class="th-row">
+      <svg class="greek-svg" viewBox="0 0 220 100">
+        <line x1="0" y1="20" x2="220" y2="20" stroke="#30363d" stroke-width="1"/>
+        <line x1="110" y1="0" x2="110" y2="100" stroke="#30363d" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="2" y="16" fill="#8b949e" font-size="9">0</text>
+        <text x="2" y="92" fill="#8b949e" font-size="9">−max</text>
+        <text x="100" y="14" fill="#8b949e" font-size="9">K</text>
+        <path d="M 5,20 C 60,20 85,22 100,72 C 105,86 115,86 120,72 C 135,22 160,20 215,20"
+              stroke="#f85149" stroke-width="2" fill="none"/>
+        <text x="80" y="50" fill="#f85149" font-size="10">Long 期权</text>
+      </svg>
+      <div class="def" style="flex:1">
+        <b>含义</b>：每过<b>一天</b>（其他不变），期权价格变动多少。Long 期权 Θ &lt; 0（持有者每天亏权利金），Short 期权 Θ &gt; 0（卖方每天赚时间价值）。<br>
+        <b>形状</b>：ATM 时 Θ 最负，远离 K 时 Θ 趋零。
+      </div>
+    </div>
+    <div class="formula">Θ_call = [−S·N′(<i>d₁</i>)·σ / (2√T)] − r·K·e^(−rT)·N(<i>d₂</i>)
+Θ_put  = [−S·N′(<i>d₁</i>)·σ / (2√T)] + r·K·e^(−rT)·N(−<i>d₂</i>)
+<u>(常除以 365 转化为"每日"衰减)</u></div>
+    <div class="factors">
+      <div class="ft">影响因素</div>
+      <table>
+        <thead><tr><th>因素</th><th>变化</th><th>对 |Θ| 影响</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>到期时间 T</td><td>↓</td><td><span class="up">↑↑</span></td><td>临到期 |Θ| 急剧放大（最后 30 天最猛）</td></tr>
+          <tr><td>价值状态</td><td>ATM</td><td><span class="up">最大</span></td><td>ATM 时间价值最厚，每天衰减最多</td></tr>
+          <tr><td>波动率 σ</td><td>↑</td><td><span class="up">↑</span></td><td>更高的时间价值意味更大的衰减绝对值</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tip i">📌 <b>每日衰减率不均匀</b>：远期期权 Θ 接近线性；进入最后 30 天后呈<b>√T</b> 加速衰减。这是"Theta 收益策略"（如 Iron Condor）选月度到期的核心原因。</div>
+  </div>
+
+  <!-- Vega -->
+  <div class="tcard greek-card" id="vega" style="border-left-color:var(--purple)">
+    <div class="th">
+      <div class="name"><span class="sym" style="color:var(--purple)">ν</span> Vega <span class="eng">— 波动率敏感度</span></div>
+      <span class="badge" style="color:var(--purple);background:rgba(188,140,255,.12)">一阶 · 波动率</span>
+    </div>
+    <div class="th-row">
+      <svg class="greek-svg" viewBox="0 0 220 100">
+        <line x1="0" y1="85" x2="220" y2="85" stroke="#30363d" stroke-width="1"/>
+        <line x1="110" y1="0" x2="110" y2="100" stroke="#30363d" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="2" y="14" fill="#8b949e" font-size="9">+max</text>
+        <text x="2" y="89" fill="#8b949e" font-size="9">0</text>
+        <text x="100" y="98" fill="#8b949e" font-size="9">K</text>
+        <path d="M 5,85 C 50,85 80,30 110,30 C 140,30 170,85 215,85"
+              stroke="#bc8cff" stroke-width="2" fill="none"/>
+        <text x="80" y="22" fill="#bc8cff" font-size="10">Call/Put 同形</text>
+      </svg>
+      <div class="def" style="flex:1">
+        <b>含义</b>：隐含波动率 IV 每上升 <b>1 个百分点</b>（如 25% → 26%），期权价格变动多少。Long 期权 ν &gt; 0，Short 期权 ν &lt; 0。<br>
+        <b>形状</b>：钟形（比 Γ 更平缓），ATM 最大；远期期权 ν 大于近期。
+      </div>
+    </div>
+    <div class="formula">ν = S · N′(<i>d₁</i>) · √T   <u>(Call/Put 相同, 通常除以 100)</u></div>
+    <div class="factors">
+      <div class="ft">影响因素</div>
+      <table>
+        <thead><tr><th>因素</th><th>变化</th><th>对 ν 影响</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>到期时间 T</td><td>↑</td><td><span class="up">↑</span></td><td>远期 ν 大（与 √T 成正比）</td></tr>
+          <tr><td>价值状态</td><td>ATM</td><td><span class="up">最大</span></td><td>OTM/ITM 越深，ν 越小</td></tr>
+          <tr><td>波动率 σ</td><td>↑</td><td>近似不变</td><td>ν 是一阶导，对 σ 自身不敏感</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tip w">⚠ <b>Vol Crush 陷阱</b>：财报前 IV 飙高，事件揭晓后 IV 暴跌（哪怕方向看对，期权也大幅贬值）。Long Straddle 财报后买入是经典送钱场景。<a href="#crush" class="anchor-jump">→ 详见 Vol Crush</a></div>
+  </div>
+
+  <!-- Rho -->
+  <div class="tcard greek-card" id="rho" style="border-left-color:var(--yellow)">
+    <div class="th">
+      <div class="name"><span class="sym" style="color:var(--yellow)">ρ</span> Rho <span class="eng">— 利率敏感度</span></div>
+      <span class="badge" style="color:var(--yellow);background:rgba(210,153,34,.12)">一阶 · 利率</span>
+    </div>
+    <div class="th-row">
+      <svg class="greek-svg" viewBox="0 0 220 100">
+        <line x1="0" y1="50" x2="220" y2="50" stroke="#30363d" stroke-width="1"/>
+        <line x1="110" y1="0" x2="110" y2="100" stroke="#30363d" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="2" y="14" fill="#8b949e" font-size="9">+</text>
+        <text x="2" y="98" fill="#8b949e" font-size="9">−</text>
+        <path d="M 5,52 C 70,52 90,48 110,40 C 130,32 160,18 215,15"
+              stroke="#3fb950" stroke-width="2" fill="none"/>
+        <text x="155" y="32" fill="#3fb950" font-size="10">Call ρ &gt; 0</text>
+        <path d="M 5,85 C 60,82 90,68 110,60 C 130,52 160,48 215,48"
+              stroke="#58a6ff" stroke-width="2" fill="none" stroke-dasharray="4,3"/>
+        <text x="20" y="78" fill="#58a6ff" font-size="10">Put ρ &lt; 0</text>
+      </svg>
+      <div class="def" style="flex:1">
+        <b>含义</b>：无风险利率 r 每上升 <b>1 个百分点</b>，期权价格变动多少。Call ρ &gt; 0（持有 Call 等价于推迟付钱，利率上升对持有者有利），Put ρ &lt; 0。<br>
+        <b>实务</b>：短期期权 ρ 极小，常被忽略；只在长期 LEAPS（≥ 1 年）或利率剧烈变动时才重要。
+      </div>
+    </div>
+    <div class="formula">ρ_call = K · T · e^(−rT) · N(<i>d₂</i>)
+ρ_put  = −K · T · e^(−rT) · N(−<i>d₂</i>)
+<u>(通常除以 100)</u></div>
+    <div class="factors">
+      <div class="ft">影响因素</div>
+      <table>
+        <thead><tr><th>因素</th><th>变化</th><th>对 |ρ| 影响</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>到期时间 T</td><td>↑</td><td><span class="up">↑↑</span></td><td>ρ 与 T 近似线性，最敏感的因子</td></tr>
+          <tr><td>价值状态</td><td>ITM</td><td><span class="up">↑</span></td><td>深度 ITM 期权 |ρ| 最大</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tip i">📌 短期月度交易者通常无需关注 ρ。但在加息/降息周期或交易长期权时（LEAPS），ρ 是仅次于 ν 的风险源。</div>
+  </div>
+
+  <!-- ============================================================
+       Section 2: BLACK-SCHOLES
+       ============================================================ -->
+  <h2 class="sec-h" id="sec-bs">
+    <span class="num" style="background:var(--green)">2</span>
+    Black-Scholes 定价模型
+  </h2>
+  <p style="font-size:12px;color:var(--muted);margin:-8px 0 14px 38px">
+    Fischer Black、Myron Scholes 与 Robert Merton 1973 年提出的欧式期权定价模型。本仓库三个交互页面的所有定价均基于此模型实现。
+  </p>
+
+  <!-- BS Formula -->
+  <div class="tcard" id="bs-formula" style="border-left-color:var(--green)">
+    <div class="th"><div class="name">Black-Scholes 定价公式 <span class="eng">— Pricing Formula</span></div></div>
+    <div class="def">
+      欧式 Call/Put 在无股息资产上的<b>解析解</b>。模型假设：股价服从几何布朗运动、无套利、无交易成本、利率与波动率为常数、可连续对冲。
+    </div>
+    <div class="formula">C = S · N(<i>d₁</i>) − K · e^(−rT) · N(<i>d₂</i>)
+P = K · e^(−rT) · N(−<i>d₂</i>) − S · N(−<i>d₁</i>)</div>
+    <div class="def">
+      参数：<span class="mvar">S</span> 现价 · <span class="mvar">K</span> 行权价 · <span class="mvar">T</span> 距到期年化时间（如 30 天 = 30/365）· <span class="mvar">r</span> 无风险利率 · <span class="mvar">σ</span> 波动率。
+    </div>
+    <div class="tip i">📐 实现见 <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-size:11px;color:var(--green)">bsPrice()</code>，三个页面共用同一份 BS 内核。</div>
+  </div>
+
+  <!-- d1, d2 -->
+  <div class="tcard" id="d1d2" style="border-left-color:var(--blue)">
+    <div class="th"><div class="name"><span class="sym" style="color:var(--blue)">d₁ d₂</span> 中间变量 <span class="eng">— BS Intermediate</span></div></div>
+    <div class="def">
+      BS 公式中的两个中间表达式。本质：将股价与行权价的<b>对数偏离</b>用波动率单位<b>标准化</b>，再加上漂移修正。
+    </div>
+    <div class="formula"><i>d₁</i> = [ln(S/K) + (r + σ²/2)·T] / (σ·√T)
+<i>d₂</i> = <i>d₁</i> − σ·√T</div>
+    <div class="def">
+      <b>金融含义</b>：N(<i>d₂</i>) 是<b>风险中性测度下到期时 ITM 的概率</b>（行权概率）；N(<i>d₁</i>) 是更复杂的风险中性概率（包含支付股票的部分）。日常使用中，Δ_call ≈ N(<i>d₁</i>) 也常被解读为<b>到期 ITM 的近似概率</b>。
+    </div>
+  </div>
+
+  <!-- N(x) -->
+  <div class="tcard" id="nx" style="border-left-color:var(--accent)">
+    <div class="th"><div class="name">N(x) <span class="eng">— 标准正态分布累积函数 (CDF)</span></div></div>
+    <div class="def">
+      标准正态分布在 (−∞, x] 区间的概率。N(0) = 0.5，N(+∞) = 1，N(−∞) = 0。
+    </div>
+    <div class="formula">N(x) = (1/√(2π)) · ∫_(−∞)^x exp(−t²/2) dt</div>
+    <div class="def">
+      <b>数值实现</b>：JavaScript/Python 没有内置 CDF，本仓库用 <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-size:11px;color:var(--green)">erf</code> 多项式近似（Abramowitz & Stegun 7.1.26）：N(x) = 0.5·(1 + erf(x/√2))。
+    </div>
+  </div>
+
+  <!-- φ(x) -->
+  <div class="tcard" id="phi" style="border-left-color:var(--accent)">
+    <div class="th"><div class="name">N′(x) 或 φ(x) <span class="eng">— 标准正态概率密度 (PDF)</span></div></div>
+    <div class="def">
+      标准正态分布的<b>密度</b>，等于 N(x) 的导数。Gamma、Vega、Theta 公式中都出现 N′(<i>d₁</i>)。
+    </div>
+    <div class="formula">N′(x) = φ(x) = (1/√(2π)) · exp(−x²/2)</div>
+  </div>
+
+  <!-- 折现因子 -->
+  <div class="tcard" id="discount" style="border-left-color:var(--yellow)">
+    <div class="th"><div class="name">e^(−rT) <span class="eng">— 折现因子 / Discount Factor</span></div></div>
+    <div class="def">
+      <b>含义</b>：把到期时刻的金额折算回今天的现值。BS 公式中 K·e^(−rT) 即"行权价的现值"。<br>
+      <b>影响</b>：r 越大或 T 越长，折现得越多（系数越小）。是 Rho 的来源。
+    </div>
+    <div class="formula">PV(K) = K · e^(−rT)
+若 r = 5%, T = 1 年：折现因子 = e^(−0.05) ≈ 0.9512</div>
+  </div>
+
+  <!-- Put-Call Parity -->
+  <div class="tcard" id="parity" style="border-left-color:var(--orange)">
+    <div class="th"><div class="name">Put-Call 平价 <span class="eng">— Put-Call Parity</span></div></div>
+    <div class="def">
+      欧式 Call 与 Put 在<b>同行权价同到期</b>下的等式约束。这是模型无关的<b>无套利关系</b>，不依赖 BS 假设。
+    </div>
+    <div class="formula">C − P = S − K · e^(−rT)</div>
+    <div class="tip i">📌 应用：合成正股 = Long Call + Short Put @同 K；Long Call = 持股 + Long Put + 现金 K·e^(−rT)。所有合成头寸都源自这个等式。</div>
+  </div>
+
+  <!-- ============================================================
+       Section 3: 期权基础
+       ============================================================ -->
+  <h2 class="sec-h" id="sec-basic">
+    <span class="num" style="background:var(--blue)">3</span>
+    期权基础术语
+  </h2>
+
+  <div class="tgrid">
+
+    <div class="tcard" id="call-put" style="border-left-color:var(--green)">
+      <div class="th"><div class="name">Call / Put <span class="eng">— 看涨期权 / 看跌期权</span></div></div>
+      <div class="def">
+        <b>Call (看涨)</b>：买方获得在 T 时刻以 K 价<b>买入</b>标的的权利。<br>
+        <b>Put (看跌)</b>：买方获得在 T 时刻以 K 价<b>卖出</b>标的的权利。<br>
+        买方付权利金购买"权利"；卖方收权利金承担"义务"。
+      </div>
+    </div>
+
+    <div class="tcard" id="spot" style="border-left-color:var(--accent)">
+      <div class="th"><div class="name"><span class="mvar">S</span> 现价 <span class="eng">— Spot Price / Underlying Price</span></div></div>
+      <div class="def">标的资产当前的市场价格。BS 模型核心输入。期权价值随 S 实时变动（敏感度由 Delta 衡量）。</div>
+    </div>
+
+    <div class="tcard" id="strike" style="border-left-color:var(--accent)">
+      <div class="th"><div class="name"><span class="mvar">K</span> 行权价 <span class="eng">— Strike Price / Exercise Price</span></div></div>
+      <div class="def">合约规定的<b>行权约定价</b>。买方有权（或义务，取决于 Call/Put 与多空方向）以此价格买卖标的。一份合约 K 在签订时锁定，不会随市场变动。</div>
+    </div>
+
+    <div class="tcard" id="time" style="border-left-color:var(--accent)">
+      <div class="th"><div class="name"><span class="mvar">T</span> 到期日 <span class="eng">— Maturity / Expiration</span></div></div>
+      <div class="def">期权<b>失效</b>的日期。BS 公式中以"年化时间"输入：T = (剩余天数) / 365。距到期越近，时间价值衰减越快（Theta 加速）。</div>
+      <div class="tip i">📅 美股月度期权一般在每月第三个周五到期；A 股 50ETF 期权在每月第四个周三到期。</div>
+    </div>
+
+    <div class="tcard" id="rate" style="border-left-color:var(--accent)">
+      <div class="th"><div class="name"><span class="mvar">r</span> 无风险利率 <span class="eng">— Risk-Free Rate</span></div></div>
+      <div class="def">
+        理论上是无信用风险的连续复利收益率。常用代理：<b>美国国债收益率</b>（短期用 1M / 3M 国债，长期匹配期权期限）；A 股常用 SHIBOR 或央行 7 日逆回购利率。
+      </div>
+    </div>
+
+    <div class="tcard" id="premium" style="border-left-color:var(--purple)">
+      <div class="th"><div class="name">权利金 <span class="eng">— Premium / Option Price</span></div></div>
+      <div class="def">
+        期权当前的市场价格，由<b>买方支付</b>给卖方。 = 内在价值 + 时间价值。
+      </div>
+      <div class="formula">权利金 = Intrinsic Value + Time Value</div>
+    </div>
+
+    <div class="tcard" id="intrinsic" style="border-left-color:var(--green)">
+      <div class="th"><div class="name">内在价值 <span class="eng">— Intrinsic Value</span></div></div>
+      <div class="def">立刻行权能拿到的钱。OTM 与 ATM 期权的内在价值为 <b>0</b>。</div>
+      <div class="formula">Call 内在价值 = max(S − K, 0)
+Put  内在价值 = max(K − S, 0)</div>
+    </div>
+
+    <div class="tcard" id="timevalue" style="border-left-color:var(--yellow)">
+      <div class="th"><div class="name">时间价值 <span class="eng">— Time Value / Extrinsic Value</span></div></div>
+      <div class="def">
+        权利金中超出内在价值的部分。反映"<b>未来可能更值钱</b>"的不确定性溢价，由 T 与 σ 共同支撑。到期时归零（这就是 Theta 的来源）。
+      </div>
+      <div class="formula">时间价值 = 权利金 − 内在价值</div>
+    </div>
+
+    <div class="tcard" id="moneyness" style="border-left-color:var(--orange)">
+      <div class="th"><div class="name">ITM / ATM / OTM <span class="eng">— 价值状态 / Moneyness</span></div></div>
+      <div class="def">
+        描述当前现价 S 相对行权价 K 的位置，决定期权是否"实值"。
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px">
+        <thead><tr style="background:var(--bg)">
+          <th style="padding:4px 8px;border:1px solid var(--border);color:var(--muted)">缩写</th>
+          <th style="padding:4px 8px;border:1px solid var(--border);color:var(--muted)">中文</th>
+          <th style="padding:4px 8px;border:1px solid var(--border);color:var(--muted)">Call 条件</th>
+          <th style="padding:4px 8px;border:1px solid var(--border);color:var(--muted)">Put 条件</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:4px 8px;border:1px solid var(--border)"><b style="color:var(--green)">ITM</b></td><td style="padding:4px 8px;border:1px solid var(--border)">实值</td><td style="padding:4px 8px;border:1px solid var(--border)">S &gt; K</td><td style="padding:4px 8px;border:1px solid var(--border)">S &lt; K</td></tr>
+          <tr><td style="padding:4px 8px;border:1px solid var(--border)"><b style="color:var(--yellow)">ATM</b></td><td style="padding:4px 8px;border:1px solid var(--border)">平值</td><td style="padding:4px 8px;border:1px solid var(--border)" colspan="2">S ≈ K</td></tr>
+          <tr><td style="padding:4px 8px;border:1px solid var(--border)"><b style="color:var(--red)">OTM</b></td><td style="padding:4px 8px;border:1px solid var(--border)">虚值</td><td style="padding:4px 8px;border:1px solid var(--border)">S &lt; K</td><td style="padding:4px 8px;border:1px solid var(--border)">S &gt; K</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       Section 4: 波动率
+       ============================================================ -->
+  <h2 class="sec-h" id="sec-vol">
+    <span class="num" style="background:var(--purple)">4</span>
+    波动率相关
+  </h2>
+  <p style="font-size:12px;color:var(--muted);margin:-8px 0 14px 38px">
+    波动率是期权交易者真正的"标的"——很多顶级交易员不押方向，只交易波动率。
+  </p>
+
+  <div class="tgrid">
+
+    <div class="tcard" id="sigma" style="border-left-color:var(--purple)">
+      <div class="th"><div class="name"><span class="mvar">σ</span> Sigma <span class="eng">— 波动率 (年化)</span></div></div>
+      <div class="def">
+        标的资产<b>对数收益率的年化标准差</b>。BS 公式中以小数输入（25% → 0.25）。<br>
+        典型值：大盘指数 15%~25%；个股 30%~60%；高 Beta 科技股 40%~80%；加密货币 60%+。
+      </div>
+      <div class="formula">σ_年化 = σ_日 · √252   (252 个交易日)</div>
+    </div>
+
+    <div class="tcard" id="iv" style="border-left-color:var(--red)">
+      <div class="th"><div class="name">IV <span class="eng">— Implied Volatility · 隐含波动率</span></div></div>
+      <div class="def">
+        从<b>市场期权价格反推</b>出的 σ。意为"市场认为未来会有多大波动"。<br>
+        <b>计算</b>：将 BS 公式倒过来求解（无解析解，需用 Newton-Raphson 等数值方法迭代）。
+      </div>
+      <div class="formula">市场价 = BS(S, K, T, r, <u>IV</u>)  → 反解 IV</div>
+      <div class="tip i">📌 IV 不是预测值，是<b>市场共识</b>。常常远大于实际后续 HV，这种"波动率风险溢价"是卖方策略的盈利来源。</div>
+    </div>
+
+    <div class="tcard" id="hv" style="border-left-color:var(--blue)">
+      <div class="th"><div class="name">HV <span class="eng">— Historical Volatility · 历史波动率</span></div></div>
+      <div class="def">
+        从<b>过去价格</b>统计出的实际 σ。常用 20 / 30 / 60 日窗口。
+      </div>
+      <div class="formula">HV = √[ (Σ(rᵢ − r̄)²) / (n − 1) ] · √252
+其中 rᵢ = ln(Pᵢ/Pᵢ₋₁) 为对数收益率</div>
+      <div class="tip i">📊 IV vs HV 的<b>差值</b>是关键信号：IV ≫ HV → 期权"贵"，适合卖方；IV ≪ HV → 期权"便宜"，适合买方。</div>
+    </div>
+
+    <div class="tcard" id="smile" style="border-left-color:var(--orange)">
+      <div class="th"><div class="name">波动率微笑 / 倾斜 <span class="eng">— Volatility Smile / Skew</span></div></div>
+      <div class="def">
+        实际市场上不同 K 的期权 IV <b>不相同</b>（与 BS 假设矛盾）：<br>
+        ▸ <b>微笑</b>：远离 ATM 的 OTM/ITM 期权 IV 较高，呈 U 形（FX、商品常见）<br>
+        ▸ <b>倾斜 (Skew)</b>：股指 OTM Put 的 IV 显著高于 OTM Call（"恐慌溢价"）<br>
+        反映尾部风险的市场定价。
+      </div>
+    </div>
+
+    <div class="tcard" id="crush" style="border-left-color:var(--red)">
+      <div class="th"><div class="name">Vol Crush <span class="eng">— 波动率坍塌</span></div></div>
+      <div class="def">
+        重大不确定性事件（财报、FDA、政策）<b>揭晓后</b>，IV 短时间从高位（如 80%）跌回常态（如 25%），导致期权权利金暴跌。即使方向看对，Long Straddle 也可能反向亏损。
+      </div>
+      <div class="tip w">⚠ 财报后第二天的 Long 期权头寸通常是巨亏，这是新手最常踩的坑。要么提前锁价（财报前一两天），要么干脆做卖方接收溢价。</div>
+    </div>
+
+    <div class="tcard" id="vix" style="border-left-color:var(--yellow)">
+      <div class="th"><div class="name">VIX <span class="eng">— 恐慌指数</span></div></div>
+      <div class="def">
+        芝加哥期权交易所(CBOE)发布的 <b>SPX 30 天 IV 指数</b>，俗称"恐慌指数"。计算基于 SPX 期权的 IV 加权。<br>
+        典型区间：宁静市 12~16；正常 16~22；紧张 22~30；恐慌 30~50；危机 50+（如 2020 年 3 月达 82）。
+      </div>
+    </div>
+
+    <div class="tcard" id="ivrank" style="border-left-color:var(--purple)">
+      <div class="th"><div class="name">IV Rank / IV Percentile</div></div>
+      <div class="def">
+        当前 IV 在过去 <b>1 年</b> IV 区间中的相对位置，用于判断 IV "高"还是"低"。
+      </div>
+      <div class="formula">IV Rank = (当前IV − 1年最低) / (1年最高 − 1年最低) · 100
+IV Percentile = 过去1年中 IV 低于当前值的<b>天数比例</b></div>
+      <div class="tip i">📌 实务经验：IV Rank ≥ 50 偏向卖方策略（Iron Condor、Credit Spread）；IV Rank ≤ 20 偏向买方策略（Long Straddle、Long Call）。</div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       Section 5: 策略术语
+       ============================================================ -->
+  <h2 class="sec-h" id="sec-strat">
+    <span class="num" style="background:var(--orange)">5</span>
+    策略与交易术语
+  </h2>
+
+  <div class="tgrid">
+
+    <div class="tcard" id="longshort" style="border-left-color:var(--green)">
+      <div class="th"><div class="name">Long / Short <span class="eng">— 多头 / 空头</span></div></div>
+      <div class="def">
+        <b>Long (买入)</b>：付出权利金获得"权利"，预期标的或 IV 朝有利方向变化。<br>
+        <b>Short (卖出)</b>：收取权利金承担"义务"，希望期权到期作废（OTM）赚取时间价值。<br>
+        Long 与 Short 的盈亏曲线<b>完全镜像</b>。
+      </div>
+    </div>
+
+    <div class="tcard" id="spread" style="border-left-color:var(--blue)">
+      <div class="th"><div class="name">借方 / 贷方价差 <span class="eng">— Debit / Credit Spread</span></div></div>
+      <div class="def">
+        <b>Debit Spread (借方)</b>：净支出，构建时账户<b>减少</b>权利金。如 Bull Call Spread、Bear Put Spread。最大亏损 = 净成本。<br>
+        <b>Credit Spread (贷方)</b>：净收入，构建时账户<b>增加</b>权利金。如 Bull Put Spread、Bear Call Spread、Iron Condor。最大盈利 = 净收入。
+      </div>
+      <div class="tip i">📌 <b>选择规律</b>：IV 高用 Credit（享受 IV 回归 + Theta）；IV 低用 Debit（杠杆参与方向）。</div>
+    </div>
+
+    <div class="tcard" id="breakeven" style="border-left-color:var(--purple)">
+      <div class="th"><div class="name">盈亏平衡点 <span class="eng">— Break-Even Point</span></div></div>
+      <div class="def">到期日策略盈亏 = 0 时对应的标的价格。单腿 Long Call 平衡点 = K + 权利金；Long Put = K − 权利金。Iron Condor 等多腿策略有<b>两个</b>平衡点。</div>
+    </div>
+
+    <div class="tcard" id="covered" style="border-left-color:var(--green)">
+      <div class="th"><div class="name">Covered Call <span class="eng">— 备兑开仓</span></div></div>
+      <div class="def">
+        持有 100 股正股 + 卖出 1 张 OTM Call。被行权时按约定价交付正股<b>不会爆仓</b>。<br>
+        <b>用途</b>：长期持仓基础上增强月度现金流；本质把上行收益的封顶卖了。
+      </div>
+      <div class="formula">总盈亏 = (S − S₀) + 收到的Call权利金 − max(S − K, 0)</div>
+    </div>
+
+    <div class="tcard" id="protective" style="border-left-color:var(--blue)">
+      <div class="th"><div class="name">Protective Put <span class="eng">— 保护性看跌</span></div></div>
+      <div class="def">
+        持有正股 + 买入 OTM Put 作为<b>保险</b>。下行被 Put 兜底，上行不封顶（仅扣除 Put 权利金）。<br>
+        相当于给持仓买"<b>保险</b>"，权利金即保费。
+      </div>
+    </div>
+
+    <div class="tcard" id="csp" style="border-left-color:var(--yellow)">
+      <div class="th"><div class="name">Cash-Secured Put <span class="eng">— 现金担保看跌</span></div></div>
+      <div class="def">
+        卖出 1 张 OTM Put + 在账户中冻结 K × 100 现金。如果被行权，用现金以 K 接货（可视为"打折买股"）。<br>
+        没被行权则白赚权利金。是 Wheel 策略的第一步。
+      </div>
+    </div>
+
+    <div class="tcard" id="wheel" style="border-left-color:var(--purple)">
+      <div class="th"><div class="name">Wheel 轮策略 <span class="eng">— The Wheel</span></div></div>
+      <div class="def">
+        <b>三步循环</b>：① CSP 卖 Put 收权利金；② 若被指派接到正股，转 Covered Call 卖 Call；③ 若 CC 被行权交付正股，回到第①步。<br>
+        本质是利用愿意持有的标的<b>反复收割权利金</b>，是稳健现金流策略。
+      </div>
+    </div>
+
+    <div class="tcard" id="collar" style="border-left-color:var(--teal)">
+      <div class="th"><div class="name">Collar 领口策略 <span class="eng">— Collar</span></div></div>
+      <div class="def">
+        持有正股 + 买 OTM Put + 卖 OTM Call。Put 提供下行保险，Call 权利金<b>抵消</b> Put 成本（理想状态零成本）。代价是上行收益被 Call 封顶。<br>
+        机构对冲长期持仓的经典做法。
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       Section 6: 风险与执行
+       ============================================================ -->
+  <h2 class="sec-h" id="sec-risk">
+    <span class="num" style="background:var(--red)">6</span>
+    风险与执行术语
+  </h2>
+
+  <div class="tgrid">
+
+    <div class="tcard" id="assignment" style="border-left-color:var(--red)">
+      <div class="th"><div class="name">Assignment <span class="eng">— 指派</span></div></div>
+      <div class="def">
+        作为 Short 端，<b>对手方行权</b>导致你被强制履约。Short Call 被指派 → 必须以 K 价交付 100 股；Short Put 被指派 → 必须以 K 价买入 100 股。<br>
+        被指派是卖方的"职业风险"，资金不足时可能被强平。
+      </div>
+    </div>
+
+    <div class="tcard" id="exercise" style="border-left-color:var(--green)">
+      <div class="th"><div class="name">Exercise <span class="eng">— 行权</span></div></div>
+      <div class="def">
+        作为 Long 端，<b>主动履行</b>合约权利。Long Call 行权 → 以 K 价买入 100 股；Long Put 行权 → 以 K 价卖出 100 股。<br>
+        欧式期权<b>仅到期日</b>能行权；美式期权<b>到期前任意</b>交易日均可。
+      </div>
+    </div>
+
+    <div class="tcard" id="early" style="border-left-color:var(--yellow)">
+      <div class="th"><div class="name">Early Exercise <span class="eng">— 提前行权</span></div></div>
+      <div class="def">
+        美式期权到期前的行权。理论上无股息 Call 不应提前行权（损失时间价值）；但 Put 在深度 ITM、Call 在除息前可能合理。<br>
+        <b>实务</b>：散户被提前指派的概率极低（&lt; 5%），主要发生在分红除权前夜。
+      </div>
+    </div>
+
+    <div class="tcard" id="amer-eu" style="border-left-color:var(--blue)">
+      <div class="th"><div class="name">美式 / 欧式期权 <span class="eng">— American / European</span></div></div>
+      <div class="def">
+        ▸ <b>美式</b>：可在到期前<b>任意时刻</b>行权。美股个股期权、ETF 期权均为美式。BS 模型仅适用于近似估值（精确需用二叉树或有限差分）。<br>
+        ▸ <b>欧式</b>：仅在<b>到期日</b>行权。指数期权（SPX、A 股 50ETF）多为欧式。BS 模型解析解严格成立。
+      </div>
+    </div>
+
+    <div class="tcard" id="margin" style="border-left-color:var(--orange)">
+      <div class="th"><div class="name">Margin <span class="eng">— 保证金</span></div></div>
+      <div class="def">
+        卖方为可能履约义务<b>预存的担保金</b>。买方只付权利金、不需保证金。<br>
+        ▸ <b>裸卖期权</b>：保证金最高（如 SPAN 模型，按潜在最大亏损算）<br>
+        ▸ <b>价差策略</b>：因风险有限，保证金 ≈ 最大亏损，效率高得多<br>
+        ▸ <b>备兑/担保</b>：用现金或正股担保，无需额外占用
+      </div>
+    </div>
+
+    <div class="tcard" id="pin" style="border-left-color:var(--red)">
+      <div class="th"><div class="name">Pin Risk <span class="eng">— 钉住风险</span></div></div>
+      <div class="def">
+        到期日标的收盘价<b>恰好等于</b>行权价 K 时，你不知道自己 ATM 期权会不会被自动行权 / 自动指派。下一交易日开盘出现意外的多头/空头头寸，导致开盘跳空风险。<br>
+        缓解：到期日临近收盘前主动平仓所有 ATM 期权。
+      </div>
+    </div>
+
+    <div class="tcard" id="hedge" style="border-left-color:var(--accent)">
+      <div class="th"><div class="name">Delta Hedge <span class="eng">— Delta 对冲</span></div></div>
+      <div class="def">
+        通过持有标的多空头寸<b>抵消组合 Delta</b>，使总 Δ ≈ 0，从而中性化方向风险，专注捕捉 Vega / Theta / Gamma 收益。做市商的核心工作。<br>
+        因 Δ 随 S 变化，Delta Hedge 需<b>持续动态调整</b>（这就是 Gamma 风险的根源）。
+      </div>
+      <div class="formula">对冲股数 = −Δ_组合 × 100   (每张期权对应 100 股)</div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <b>📌 学习路径建议：</b>新手按 <b>3 期权基础 → 1 Greeks (重点 Δ/Θ) → 4 IV 与波动率 → 2 BS 模型 → 5 策略术语 → 6 风险</b> 的顺序循序渐进。Greeks 中初学只需吃透 Δ 与 Θ，掌握组合策略后再深入 Γ/ν/ρ。<br>
+    <b>📌 数学约定：</b>本词典所有公式为<b>欧式 + 无股息</b>简化形式。含股息的版本只需把 S 替换为 S·e^(−qT)，q 为连续股息率。
+  </div>
+
+  </main>
+
+</div>
+
+<script>
+// TOC active highlighting on scroll
+const tocLinks = document.querySelectorAll('.toc a');
+const targets = Array.from(tocLinks).map(a => {
+  const id = a.getAttribute('href').slice(1);
+  return { link: a, el: document.getElementById(id) };
+}).filter(t => t.el);
+
+function setActive() {
+  const scrollY = window.scrollY + 80;
+  let current = targets[0];
+  for (const t of targets) {
+    if (t.el.offsetTop <= scrollY) current = t;
+  }
+  tocLinks.forEach(a => a.classList.remove('active'));
+  if (current) current.link.classList.add('active');
+}
+window.addEventListener('scroll', setActive, { passive: true });
+setActive();
+
+// Smooth scroll
+tocLinks.forEach(a => {
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    const id = a.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) {
+      window.scrollTo({ top: el.offsetTop - 60, behavior: 'smooth' });
+      history.replaceState(null, '', '#' + id);
+    }
+  });
+});
+
+// ============================================================
+// === Auto term cross-references (hover tooltip + jump)  ===
+// ============================================================
+// Each term: p=正则 t=释义 j=跳转目标卡片id (可选)。order matters:
+// 长串放前面，避免被短串先吃掉。重叠时长串优先。
+const TERMS = [
+  // Math notations
+  { p: /N\(d₁\)/g,  t: '标准正态 CDF 在 d₁ 处的值，等于 Long Call 的 Delta。', j: 'nx' },
+  { p: /N\(d₂\)/g,  t: '标准正态 CDF 在 d₂ 处的值。可解读为风险中性下到期 ITM 的概率。', j: 'nx' },
+  { p: /N\(−d₁\)/g, t: '= 1 − N(d₁)。Long Put 的 |Δ|。', j: 'nx' },
+  { p: /N\(−d₂\)/g, t: '= 1 − N(d₂)。', j: 'nx' },
+  { p: /N′\(d₁\)/g, t: '标准正态 PDF 在 d₁ 处的值。Gamma / Vega / Theta 公式核心。', j: 'phi' },
+  // Long English compounds (must precede shorter substrings)
+  { p: /Cash-Secured Put/g, t: '现金担保看跌：卖 Put + 冻结 K×100 现金担保。', j: 'csp' },
+  { p: /Bull Call Spread/g, t: '牛市看涨价差：买低 K Call + 卖高 K Call。借方策略。' },
+  { p: /Bear Put Spread/g,  t: '熊市看跌价差：买高 K Put + 卖低 K Put。借方策略。' },
+  { p: /Bull Put Spread/g,  t: '牛市看跌价差：卖高 K Put + 买低 K Put。贷方策略。' },
+  { p: /Bear Call Spread/g, t: '熊市看涨价差：卖低 K Call + 买高 K Call。贷方策略。' },
+  { p: /Long Straddle/g,    t: '买入跨式：同 K 买 Call+Put，做多波动率。' },
+  { p: /Short Straddle/g,   t: '卖出跨式：同 K 卖 Call+Put，做空波动率。' },
+  { p: /Long Strangle/g,    t: '买入宽跨式：不同 K 买 Call+Put，比 Straddle 成本低但需更大波动。' },
+  { p: /Short Strangle/g,   t: '卖出宽跨式：不同 K 卖 Call+Put。' },
+  { p: /Long Call/g,        t: '买入看涨：付权利金获得以 K 价买入标的的权利。' },
+  { p: /Short Call/g,       t: '卖出看涨：收权利金，承担被行权交付正股的义务。' },
+  { p: /Long Put/g,         t: '买入看跌：付权利金获得以 K 价卖出标的的权利。' },
+  { p: /Short Put/g,        t: '卖出看跌：收权利金，承担被指派接货的义务。' },
+  { p: /Iron Condor/g,      t: '铁鹰式：限风险的区间收入策略 = Bull Put + Bear Call。' },
+  { p: /Iron Butterfly/g,   t: '铁蝶：贷方版蝶式，以净收入构造。' },
+  { p: /Covered Call/g,     t: '备兑开仓：持股 + 卖 OTM Call，增强月度现金流。', j: 'covered' },
+  { p: /Protective Put/g,   t: '保护性看跌：持股 + 买 OTM Put 做下行保险。', j: 'protective' },
+  { p: /Vol Crush/g,        t: '波动率坍塌：事件后 IV 暴跌导致期权急贬。', j: 'crush' },
+  { p: /Put-Call 平价/g,    t: 'C − P = S − K·e^(−rT)，模型无关的无套利等式。', j: 'parity' },
+  // Single English terms (Greeks etc.)
+  { p: /Butterfly/g,        t: '蝶式价差：在三个等距 K 上 1-2-1 构造，精准点位策略。' },
+  { p: /Collar/g,           t: '领口：持股 + 买 Put + 卖 Call，常构造为零成本对冲。', j: 'collar' },
+  { p: /\bWheel\b/g,        t: 'Wheel 轮策略：CSP → 接货 → Covered Call 循环收割权利金。', j: 'wheel' },
+  { p: /\bDelta\b/g,        t: 'Δ：标的每动 1 元期权价变多少；可视为到期 ITM 概率近似。', j: 'delta' },
+  { p: /\bGamma\b/g,        t: 'Γ：Delta 的变化率，ATM 最大。', j: 'gamma' },
+  { p: /\bTheta\b/g,        t: 'Θ：每天时间衰减。Long 为负，Short 为正。', j: 'theta' },
+  { p: /\bVega\b/g,         t: 'ν：IV 每涨 1% 期权变多少。Long 为正，Short 为负。', j: 'vega' },
+  { p: /\bRho\b/g,          t: 'ρ：r 每涨 1% 期权变多少。短期可忽略。', j: 'rho' },
+  // Acronyms (use \b)
+  { p: /\bITM\b/g,   t: '实值 (In-The-Money)：Call 当 S>K，Put 当 S<K。有内在价值。', j: 'moneyness' },
+  { p: /\bATM\b/g,   t: '平值 (At-The-Money)：S≈K。时间价值最厚，Greeks 极值多在此处。', j: 'moneyness' },
+  { p: /\bOTM\b/g,   t: '虚值 (Out-of-The-Money)：Call 当 S<K，Put 当 S>K。无内在价值。', j: 'moneyness' },
+  { p: /\bIV\b/g,    t: '隐含波动率 (Implied Volatility)：从市场期权价反推的 σ。', j: 'iv' },
+  { p: /\bHV\b/g,    t: '历史波动率 (Historical Volatility)：从过去价格统计的实际 σ。', j: 'hv' },
+  { p: /\bVIX\b/g,   t: 'CBOE 发布的 SPX 30 天 IV 指数，俗称恐慌指数。', j: 'vix' },
+  { p: /\bCSP\b/g,   t: 'Cash-Secured Put 现金担保看跌。', j: 'csp' },
+  { p: /\bLEAPS\b/g, t: 'Long-term Equity AnticiPation Securities：到期 ≥ 1 年的长期期权。' },
+  // Chinese terms
+  { p: /波动率坍塌/g, t: '事件后 IV 暴跌导致期权急贬。', j: 'crush' },
+  { p: /隐含波动率/g, t: '从市场期权价反推的 σ，反映市场对未来波动的预期。', j: 'iv' },
+  { p: /历史波动率/g, t: '从过去价格统计的实际 σ。', j: 'hv' },
+  { p: /内在价值/g,   t: '立刻行权能拿到的钱。Call: max(S−K,0)；Put: max(K−S,0)。', j: 'intrinsic' },
+  { p: /时间价值/g,   t: '权利金 − 内在价值。反映未来不确定性溢价，到期归零。', j: 'timevalue' },
+  { p: /权利金/g,     t: '期权市场价格 = 内在价值 + 时间价值。', j: 'premium' },
+  { p: /行权价/g,     t: '期权约定的买卖价格 K，签订时锁定。', j: 'strike' },
+  { p: /折现因子/g,   t: 'e^(−rT)：把到期金额折回今天的现值。', j: 'discount' },
+  { p: /无风险利率/g, t: '理论上无信用风险的连续复利收益率，常用国债收益率代理。', j: 'rate' },
+];
+
+function findMatches(text, skipJump) {
+  const matches = [];
+  for (const term of TERMS) {
+    if (term.j && term.j === skipJump) continue;  // 不在自己的卡片里自引用
+    term.p.lastIndex = 0;
+    let m;
+    while ((m = term.p.exec(text)) !== null) {
+      matches.push({ start: m.index, end: m.index + m[0].length, matched: m[0], term });
+    }
+  }
+  // 按起点升序、长度降序排序，重叠时长串优先
+  matches.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+  const filtered = [];
+  let lastEnd = -1;
+  for (const m of matches) {
+    if (m.start >= lastEnd) {
+      filtered.push(m);
+      lastEnd = m.end;
+    }
+  }
+  return filtered;
+}
+
+function shouldSkipParent(el) {
+  if (!el) return true;
+  return !!el.closest('.term, .formula, code, .toc, .name, .sec-h, .scn-h h5, h2, h3, h4, h5, a');
+}
+
+function wrapTextNode(textNode, skipJump, seenJumps) {
+  const text = textNode.textContent;
+  const matches = findMatches(text, skipJump).filter(m => {
+    // 同一容器内同一术语只标注首次出现 (避免噪音)
+    if (m.term.j && seenJumps.has(m.term.j)) return false;
+    return true;
+  });
+  if (!matches.length) return;
+
+  const fragment = document.createDocumentFragment();
+  let pos = 0;
+  for (const m of matches) {
+    if (m.start > pos) fragment.appendChild(document.createTextNode(text.slice(pos, m.start)));
+    const span = document.createElement('span');
+    span.className = 'term';
+    span.dataset.tip = m.term.t;
+    if (m.term.j) {
+      span.dataset.jump = m.term.j;
+      seenJumps.add(m.term.j);
+    }
+    span.textContent = m.matched;
+    fragment.appendChild(span);
+    pos = m.end;
+  }
+  if (pos < text.length) fragment.appendChild(document.createTextNode(text.slice(pos)));
+  textNode.parentNode.replaceChild(fragment, textNode);
+}
+
+function autoWrap() {
+  // 以 .tcard 和 .intro 为范围，每个范围内同术语只首次包裹
+  document.querySelectorAll('.tcard, .intro').forEach(container => {
+    const skipJump = container.classList.contains('tcard') ? container.id : null;
+    const seenJumps = new Set();
+    if (skipJump) seenJumps.add(skipJump);
+
+    container.querySelectorAll('.def, .factors td, .tip, p').forEach(el => {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+        acceptNode(n) {
+          if (shouldSkipParent(n.parentElement)) return NodeFilter.FILTER_REJECT;
+          if (!n.textContent.trim()) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      const nodes = [];
+      let n; while ((n = walker.nextNode())) nodes.push(n);
+      nodes.forEach(node => wrapTextNode(node, skipJump, seenJumps));
+    });
+  });
+}
+
+autoWrap();
+
+// === Tooltip popup ===
+const _tip = document.createElement('div');
+_tip.className = 'gloss-tip';
+document.body.appendChild(_tip);
+
+let _activeTerm = null;
+
+document.body.addEventListener('mouseover', (e) => {
+  const t = e.target.closest('.term[data-tip]');
+  if (!t || t === _activeTerm) return;
+  _activeTerm = t;
+  let html = t.dataset.tip;
+  if (t.dataset.jump) html += '<span class="tip-jump">点击跳转 →</span>';
+  _tip.innerHTML = html;
+  _tip.style.display = 'block';
+  const r = t.getBoundingClientRect();
+  const tw = _tip.offsetWidth;
+  let left = r.left + r.width / 2;
+  left = Math.max(tw/2 + 10, Math.min(window.innerWidth - tw/2 - 10, left));
+  _tip.style.left = left + 'px';
+  _tip.style.top  = (r.top - 8) + 'px';
+});
+
+document.body.addEventListener('mouseout', (e) => {
+  const t = e.target.closest('.term');
+  if (t && t === _activeTerm) {
+    _activeTerm = null;
+    _tip.style.display = 'none';
+  }
+});
+
+document.body.addEventListener('click', (e) => {
+  const t = e.target.closest('.term[data-jump]');
+  if (!t) return;
+  e.preventDefault();
+  const target = document.getElementById(t.dataset.jump);
+  if (!target) return;
+  window.scrollTo({ top: target.offsetTop - 60, behavior: 'smooth' });
+  history.replaceState(null, '', '#' + t.dataset.jump);
+  _tip.style.display = 'none';
+  _activeTerm = null;
+  target.classList.remove('flash');
+  void target.offsetWidth;  // reflow
+  target.classList.add('flash');
+});
+
+// 滚动时关闭 tooltip
+window.addEventListener('scroll', () => {
+  if (_activeTerm) {
+    _activeTerm = null;
+    _tip.style.display = 'none';
+  }
+}, { passive: true });
+</script>
+
+</body>
+</html>
