@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>期权组合策略损益分析</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1117; --surface: #161b22; --border: #30363d;
+  --text: #c9d1d9; --muted: #8b949e; --accent: #1f6feb;
+  --green: #3fb950; --red: #f85149; --blue: #58a6ff; --yellow: #d29922;
+  --purple: #bc8cff; --orange: #f0883e;
+}
+body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; font-size:13px; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+/* Header with Tab nav */
+.hdr { background:var(--surface); border-bottom:1px solid var(--border); padding:10px 20px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.hdr h1 { font-size:14px; font-weight:600; color:#f0f6fc; }
+.tab-nav { display:flex; gap:4px; margin-left:20px; }
+.tab-nav a { padding:5px 14px; border-radius:6px; font-size:12px; font-weight:500; color:var(--muted); text-decoration:none; border:1px solid transparent; transition:all .15s; }
+.tab-nav a:hover { color:var(--text); background:rgba(255,255,255,.04); }
+.tab-nav a.active { color:#f0f6fc; background:var(--accent); border-color:var(--accent); }
+.tag { padding:2px 9px; border-radius:20px; font-size:11px; font-weight:500; background:rgba(188,140,255,.12); color:var(--purple); border:1px solid rgba(188,140,255,.3); }
+
+.layout { display:flex; flex:1; overflow:hidden; }
+
+/* Sidebar */
+.sidebar { width:260px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); padding:14px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
+.sec { font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:7px; }
+.param { margin-bottom:10px; }
+.ph { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+.pname { font-size:11.5px; color:var(--muted); }
+.pval { font-size:12px; font-weight:700; color:#f0f6fc; font-variant-numeric:tabular-nums; }
+input[type=range] { width:100%; height:3px; -webkit-appearance:none; appearance:none; background:var(--border); border-radius:2px; outline:none; cursor:pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:var(--accent); border-radius:50%; cursor:pointer; box-shadow:0 0 0 3px rgba(31,111,235,.18); }
+
+/* Strategy list */
+.slist { display:flex; flex-direction:column; gap:5px; }
+.sitem { display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; cursor:pointer; user-select:none; transition:all .15s; }
+.sitem:hover { border-color:var(--muted); }
+.sitem.active { border-color:var(--accent); background:rgba(31,111,235,.06); }
+.sdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.sname { flex:1; }
+.sname b { display:block; font-size:11.5px; color:#f0f6fc; }
+.sname small { color:var(--muted); font-size:10px; }
+
+/* Main area */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.chart-doc { flex:1; display:flex; overflow:hidden; }
+.cwrap { flex:1; padding:14px 18px; position:relative; overflow:hidden; min-width:0; }
+.docpanel { width:380px; flex-shrink:0; border-left:1px solid var(--border); background:var(--surface); overflow-y:auto; padding:18px; }
+.docpanel h2 { font-size:15px; color:#f0f6fc; margin-bottom:10px; }
+.docpanel h3 { font-size:13px; color:var(--blue); margin:14px 0 6px; }
+.docpanel p { font-size:12px; line-height:1.7; color:var(--text); margin-bottom:8px; }
+.docpanel ul { font-size:12px; line-height:1.7; color:var(--text); padding-left:18px; margin-bottom:8px; }
+.docpanel li { margin-bottom:4px; }
+.docpanel .formula { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px 14px; font-family:'Cascadia Code',Consolas,monospace; font-size:11.5px; color:var(--green); margin:8px 0 12px; line-height:1.6; }
+.docpanel .warn { background:rgba(248,81,73,.08); border:1px solid rgba(248,81,73,.25); border-radius:6px; padding:8px 12px; font-size:11.5px; color:var(--red); margin:8px 0; }
+.docpanel .tip { background:rgba(63,185,80,.08); border:1px solid rgba(63,185,80,.25); border-radius:6px; padding:8px 12px; font-size:11.5px; color:var(--green); margin:8px 0; }
+.dtable { width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:11.5px; }
+.dtable th, .dtable td { padding:5px 8px; border:1px solid var(--border); text-align:left; }
+.dtable th { background:var(--bg); color:var(--muted); font-weight:600; font-size:10px; text-transform:uppercase; }
+.dtable td { color:var(--text); }
+
+/* Stats bar */
+.stats { border-top:1px solid var(--border); padding:11px 18px; background:var(--surface); flex-shrink:0; }
+.sgrid { display:flex; gap:12px; flex-wrap:wrap; }
+.scard { background:var(--bg); border:1px solid var(--border); border-left-width:3px; border-radius:7px; padding:9px 12px; flex:1; min-width:160px; }
+.scard .ctitle { font-size:10px; color:var(--muted); margin-bottom:3px; font-weight:500; }
+.scard .cval { font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
+.up { color:var(--green); } .dn { color:var(--red); }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>期权损益分析</h1>
+  <div class="tab-nav">
+    <a href="options-payoff.html">单腿策略</a>
+    <a href="options-strategy.html" class="active">组合策略</a>
+  </div>
+  <span class="tag">6 种经典组合策略</span>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div>
+      <div class="sec">基础参数</div>
+      <div class="param">
+        <div class="ph"><span class="pname">现价 S</span><span class="pval" id="dS">100</span></div>
+        <input type="range" min="10" max="500" step="1" value="100" oninput="P.S=+this.value;eid('dS').textContent=this.value;render()">
+      </div>
+      <div class="param">
+        <div class="ph"><span class="pname">波动率 σ</span><span class="pval" id="dSig">25%</span></div>
+        <input type="range" min="5" max="150" step="1" value="25" oninput="P.sigma=this.value/100;eid('dSig').textContent=this.value+'%';render()">
+      </div>
+      <div class="param">
+        <div class="ph"><span class="pname">到期天数 T</span><span class="pval" id="dT">30 天</span></div>
+        <input type="range" min="1" max="365" step="1" value="30" oninput="P.T=+this.value;eid('dT').textContent=this.value+' 天';render()">
+      </div>
+      <div class="param">
+        <div class="ph"><span class="pname">无风险利率 r</span><span class="pval" id="dR">2.5%</span></div>
+        <input type="range" min="0" max="15" step="0.1" value="2.5" oninput="P.r=this.value/100;eid('dR').textContent=(+this.value).toFixed(1)+'%';render()">
+      </div>
+    </div>
+
+    <div>
+      <div class="sec">选择策略</div>
+      <div class="slist" id="stratList"></div>
+    </div>
+
+    <div id="stratParams"></div>
+  </div>
+
+  <div class="main">
+    <div class="chart-doc">
+      <div class="cwrap"><canvas id="chart"></canvas></div>
+      <div class="docpanel" id="docPanel"></div>
+    </div>
+    <div class="stats">
+      <div class="sec" style="margin-bottom:9px">策略关键指标</div>
+      <div class="sgrid" id="sgrid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const eid = s => document.getElementById(s);
+
+// ── Black-Scholes ─────────────────────────────────────────────
+function erfApprox(x) {
+  const s = x < 0 ? -1 : 1; x = Math.abs(x);
+  const t = 1/(1+0.3275911*x);
+  const poly = ((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t;
+  return s*(1-poly*Math.exp(-x*x));
+}
+const PHI = x => 0.5*(1+erfApprox(x/Math.SQRT2));
+const phi = x => Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI);
+
+function bsPrice(S,K,T,r,sig,type) {
+  if(T<1e-5) return type==='call'?Math.max(S-K,0):Math.max(K-S,0);
+  const sqT=Math.sqrt(T), d1=(Math.log(S/K)+(r+0.5*sig*sig)*T)/(sig*sqT), d2=d1-sig*sqT;
+  return type==='call' ? S*PHI(d1)-K*Math.exp(-r*T)*PHI(d2) : K*Math.exp(-r*T)*PHI(-d2)-S*PHI(-d1);
+}
+
+// ── State ─────────────────────────────────────────────────────
+const P = { S:100, sigma:0.25, T:30, r:0.025 };
+let activeStrat = 'bull_call';
+
+// ── Strategy definitions ──────────────────────────────────────
+const STRATEGIES = {
+  bull_call: {
+    name:'牛市看涨价差', eng:'Bull Call Spread', color:'#3fb950',
+    desc:'温和看涨',
+    extraParams: [
+      { id:'K1', label:'低行权价 K₁', min:-30, max:0, step:1, def:-5, unit:'偏移' },
+      { id:'K2', label:'高行权价 K₂', min:0, max:30, step:1, def:5, unit:'偏移' },
+    ],
+    legs(S,K1,K2,T,r,sig) {
+      const kLow=S+K1, kHigh=S+K2;
+      const pLow=bsPrice(S,kLow,T,r,sig,'call'), pHigh=bsPrice(S,kHigh,T,r,sig,'call');
+      return [
+        { type:'call', sign:+1, K:kLow, prem:pLow, label:'买Call K₁' },
+        { type:'call', sign:-1, K:kHigh, prem:pHigh, label:'卖Call K₂' },
+      ];
+    },
+  },
+  bear_put: {
+    name:'熊市看跌价差', eng:'Bear Put Spread', color:'#f85149',
+    desc:'温和看跌',
+    extraParams: [
+      { id:'K1', label:'低行权价 K₁', min:-30, max:0, step:1, def:-5, unit:'偏移' },
+      { id:'K2', label:'高行权价 K₂', min:0, max:30, step:1, def:5, unit:'偏移' },
+    ],
+    legs(S,K1,K2,T,r,sig) {
+      const kLow=S+K1, kHigh=S+K2;
+      const pLow=bsPrice(S,kLow,T,r,sig,'put'), pHigh=bsPrice(S,kHigh,T,r,sig,'put');
+      return [
+        { type:'put', sign:-1, K:kLow, prem:pLow, label:'卖Put K₁' },
+        { type:'put', sign:+1, K:kHigh, prem:pHigh, label:'买Put K₂' },
+      ];
+    },
+  },
+  long_straddle: {
+    name:'买入跨式', eng:'Long Straddle', color:'#58a6ff',
+    desc:'预期大幅波动',
+    extraParams: [
+      { id:'K1', label:'行权价 K', min:-30, max:30, step:1, def:0, unit:'偏移' },
+    ],
+    legs(S,K1,_,T,r,sig) {
+      const k=S+K1;
+      const cP=bsPrice(S,k,T,r,sig,'call'), pP=bsPrice(S,k,T,r,sig,'put');
+      return [
+        { type:'call', sign:+1, K:k, prem:cP, label:'买Call K' },
+        { type:'put',  sign:+1, K:k, prem:pP, label:'买Put K' },
+      ];
+    },
+  },
+  short_straddle: {
+    name:'卖出跨式', eng:'Short Straddle', color:'#d29922',
+    desc:'预期横盘震荡',
+    extraParams: [
+      { id:'K1', label:'行权价 K', min:-30, max:30, step:1, def:0, unit:'偏移' },
+    ],
+    legs(S,K1,_,T,r,sig) {
+      const k=S+K1;
+      const cP=bsPrice(S,k,T,r,sig,'call'), pP=bsPrice(S,k,T,r,sig,'put');
+      return [
+        { type:'call', sign:-1, K:k, prem:cP, label:'卖Call K' },
+        { type:'put',  sign:-1, K:k, prem:pP, label:'卖Put K' },
+      ];
+    },
+  },
+  iron_condor: {
+    name:'铁鹰式', eng:'Iron Condor', color:'#bc8cff',
+    desc:'区间震荡，有限风险',
+    extraParams: [
+      { id:'K1', label:'最低行权价 K₁', min:-40, max:-10, step:1, def:-15, unit:'偏移' },
+      { id:'K2', label:'低行权价 K₂', min:-20, max:0, step:1, def:-5, unit:'偏移' },
+      { id:'K3', label:'高行权价 K₃', min:0, max:20, step:1, def:5, unit:'偏移' },
+      { id:'K4', label:'最高行权价 K₄', min:10, max:40, step:1, def:15, unit:'偏移' },
+    ],
+    legs(S,K1,K2,T,r,sig,K3,K4) {
+      const k1=S+K1, k2=S+K2, k3=S+K3, k4=S+K4;
+      return [
+        { type:'put',  sign:+1, K:k1, prem:bsPrice(S,k1,T,r,sig,'put'),  label:'买Put K₁' },
+        { type:'put',  sign:-1, K:k2, prem:bsPrice(S,k2,T,r,sig,'put'),  label:'卖Put K₂' },
+        { type:'call', sign:-1, K:k3, prem:bsPrice(S,k3,T,r,sig,'call'), label:'卖Call K₃' },
+        { type:'call', sign:+1, K:k4, prem:bsPrice(S,k4,T,r,sig,'call'), label:'买Call K₄' },
+      ];
+    },
+  },
+  butterfly: {
+    name:'蝶式价差', eng:'Butterfly Spread', color:'#f0883e',
+    desc:'精确预测到期价',
+    extraParams: [
+      { id:'K1', label:'低行权价 K₁', min:-30, max:-5, step:1, def:-10, unit:'偏移' },
+      { id:'K2', label:'中行权价 K₂', min:-10, max:10, step:1, def:0, unit:'偏移' },
+      { id:'K3', label:'高行权价 K₃', min:5, max:30, step:1, def:10, unit:'偏移' },
+    ],
+    legs(S,K1,K2,T,r,sig,K3) {
+      const kLow=S+K1, kMid=S+K2, kHigh=S+K3;
+      return [
+        { type:'call', sign:+1, K:kLow,  prem:bsPrice(S,kLow,T,r,sig,'call'),  label:'买Call K₁' },
+        { type:'call', sign:-2, K:kMid,  prem:bsPrice(S,kMid,T,r,sig,'call'),  label:'卖2×Call K₂' },
+        { type:'call', sign:+1, K:kHigh, prem:bsPrice(S,kHigh,T,r,sig,'call'), label:'买Call K₃' },
+      ];
+    },
+  },
+};
+
+// Extra param state
+const EP = { K1:0, K2:0, K3:0, K4:0 };
+
+// ── Render strategy list ──────────────────────────────────────
+function renderStratList() {
+  const el = eid('stratList');
+  el.innerHTML = Object.entries(STRATEGIES).map(([k,v]) => `
+    <div class="sitem ${k===activeStrat?'active':''}" data-k="${k}" onclick="selectStrat('${k}')">
+      <div class="sdot" style="background:${v.color}"></div>
+      <div class="sname"><b>${v.name}</b><small>${v.eng} · ${v.desc}</small></div>
+    </div>`).join('');
+}
+
+function selectStrat(k) {
+  activeStrat = k;
+  const strat = STRATEGIES[k];
+  strat.extraParams.forEach(ep => { EP[ep.id] = ep.def; });
+  renderStratList();
+  renderExtraParams();
+  renderDoc();
+  render();
+}
+
+function renderExtraParams() {
+  const strat = STRATEGIES[activeStrat];
+  eid('stratParams').innerHTML = `<div><div class="sec">策略行权价</div>${
+    strat.extraParams.map(ep => {
+      const val = EP[ep.id];
+      const display = P.S + val;
+      return `<div class="param">
+        <div class="ph"><span class="pname">${ep.label}</span><span class="pval" id="d${ep.id}">${display} (S${val>=0?'+':''}${val})</span></div>
+        <input type="range" min="${ep.min}" max="${ep.max}" step="${ep.step}" value="${val}"
+          oninput="EP.${ep.id}=+this.value;eid('d${ep.id}').textContent=(P.S+ +this.value)+' (S'+(this.value>=0?'+':'')+this.value+')';render()">
+      </div>`;
+    }).join('')
+  }</div>`;
+}
+
+// ── Chart ─────────────────────────────────────────────────────
+const chart = new Chart(eid('chart').getContext('2d'), {
+  type:'line', data:{datasets:[]},
+  options: {
+    responsive:true, maintainAspectRatio:false, animation:false, parsing:false, normalized:true,
+    interaction:{ mode:'index', intersect:false, axis:'x' },
+    plugins: {
+      legend:{ display:false },
+      tooltip: {
+        backgroundColor:'#1c2130', titleColor:'#8b949e', bodyColor:'#f0f6fc',
+        borderColor:'#30363d', borderWidth:1, padding:10,
+        callbacks: {
+          title: items => `股价  ¥${items[0].parsed.x.toFixed(2)}`,
+          label: item => { const v=item.parsed.y; return ` ${item.dataset.label}:  ${v>=0?'+':''}${v.toFixed(4)}`; },
+          labelColor: item => ({ borderColor:item.dataset.borderColor, backgroundColor:item.dataset.borderColor }),
+        }
+      },
+      annotation: { annotations: {
+        spotLine: { type:'line', scaleID:'x', value:100, borderColor:'rgba(139,148,158,.7)', borderWidth:1.5, borderDash:[5,4],
+          label:{ display:true, content:'现价 S', position:'start', color:'#8b949e', font:{size:10}, backgroundColor:'rgba(13,17,23,.85)', padding:{x:4,y:2}, yAdjust:6 }},
+        zeroLine: { type:'line', scaleID:'y', value:0, borderColor:'rgba(48,54,61,.9)', borderWidth:1 },
+      }}
+    },
+    scales: {
+      x:{ type:'linear', grid:{color:'#21262d'}, ticks:{color:'#8b949e',maxTicksLimit:9,callback:v=>`¥${v.toFixed(0)}`}, title:{display:true,text:'到期日股价',color:'#8b949e',font:{size:11}} },
+      y:{ grid:{color:'#21262d'}, ticks:{color:'#8b949e',callback:v=>v>=0?`+${v.toFixed(1)}`:v.toFixed(1)}, title:{display:true,text:'盈亏 (元)',color:'#8b949e',font:{size:11}} },
+    }
+  }
+});
+
+// ── Render chart ──────────────────────────────────────────────
+function render() {
+  const { S, sigma, r } = P;
+  const T = P.T / 365;
+  const strat = STRATEGIES[activeStrat];
+  const paramValues = strat.extraParams.map(ep => EP[ep.id]);
+  const legs = strat.legs(S, ...paramValues, T, r, sigma);
+
+  // Fix: legs function has varying arg order, use explicit call
+  const legsFixed = strat.legs(S, paramValues[0]||0, paramValues[1]||0, T, r, sigma, paramValues[2]||0, paramValues[3]||0);
+
+  const N=300, lo=S*0.5, hi=S*1.5;
+  const prices = Array.from({length:N},(_,i)=>lo+(hi-lo)*i/(N-1));
+
+  function totalPnl(s) {
+    let sum = 0;
+    legsFixed.forEach(leg => {
+      const iv = leg.type==='call' ? Math.max(s-leg.K,0) : Math.max(leg.K-s,0);
+      sum += leg.sign * (iv - leg.prem);
+    });
+    return sum;
+  }
+
+  const pnlData = prices.map(s => ({ x:s, y:totalPnl(s) }));
+
+  // Find key points
+  const maxProfit = Math.max(...pnlData.map(d=>d.y));
+  const maxLoss = Math.min(...pnlData.map(d=>d.y));
+  const breakEvens = [];
+  for(let i=1;i<pnlData.length;i++) {
+    if((pnlData[i-1].y<=0 && pnlData[i].y>0)||(pnlData[i-1].y>=0 && pnlData[i].y<0)) {
+      const ratio = Math.abs(pnlData[i-1].y)/(Math.abs(pnlData[i-1].y)+Math.abs(pnlData[i].y));
+      breakEvens.push((pnlData[i-1].x + ratio*(pnlData[i].x-pnlData[i-1].x)).toFixed(2));
+    }
+  }
+
+  // Net premium
+  let netPrem = 0;
+  legsFixed.forEach(leg => { netPrem += leg.sign * (-leg.prem); });
+
+  chart.data.datasets = [
+    { label:strat.name+' 组合盈亏', data:pnlData, borderColor:strat.color, borderWidth:2.5, pointRadius:0, fill:false, tension:0.05 },
+  ];
+
+  // Add individual leg lines (dimmed)
+  legsFixed.forEach(leg => {
+    chart.data.datasets.push({
+      label: leg.label,
+      data: prices.map(s => {
+        const iv = leg.type==='call' ? Math.max(s-leg.K,0) : Math.max(leg.K-s,0);
+        return { x:s, y:leg.sign*(iv-leg.prem) };
+      }),
+      borderColor: leg.sign>0 ? 'rgba(63,185,80,.3)' : 'rgba(248,81,73,.3)',
+      borderWidth: 1, borderDash:[4,4], pointRadius:0, fill:false, tension:0.05,
+    });
+  });
+
+  const ann = chart.options.plugins.annotation.annotations;
+  ann.spotLine.value = S;
+  ann.spotLine.label.content = `现价 ${S}`;
+
+  // Add strike annotations dynamically
+  const strikeKeys = Object.keys(ann).filter(k=>k.startsWith('k_'));
+  strikeKeys.forEach(k => delete ann[k]);
+  const usedK = [...new Set(legsFixed.map(l=>l.K))].sort((a,b)=>a-b);
+  usedK.forEach((k,i) => {
+    ann[`k_${i}`] = {
+      type:'line', scaleID:'x', value:k,
+      borderColor:'rgba(110,118,129,.4)', borderWidth:1, borderDash:[3,5],
+      label:{ display:true, content:`K${i+1}=${k}`, position:'end', color:'#6e7681', font:{size:9},
+        backgroundColor:'rgba(13,17,23,.85)', padding:{x:3,y:1}, yAdjust:-6-i*14 }
+    };
+  });
+
+  chart.update('none');
+
+  // Stats
+  eid('sgrid').innerHTML = `
+    <div class="scard" style="border-left-color:var(--green)">
+      <div class="ctitle">最大盈利</div>
+      <div class="cval up">${maxProfit>900?'无限':'+'+maxProfit.toFixed(2)}</div>
+    </div>
+    <div class="scard" style="border-left-color:var(--red)">
+      <div class="ctitle">最大亏损</div>
+      <div class="cval dn">${maxLoss<-900?'无限':maxLoss.toFixed(2)}</div>
+    </div>
+    <div class="scard" style="border-left-color:var(--blue)">
+      <div class="ctitle">盈亏平衡点</div>
+      <div class="cval" style="color:var(--blue)">${breakEvens.length?breakEvens.map(b=>'¥'+b).join(' / '):'—'}</div>
+    </div>
+    <div class="scard" style="border-left-color:var(--yellow)">
+      <div class="ctitle">净权利金</div>
+      <div class="cval" style="color:${netPrem>=0?'var(--green)':'var(--red)'}">${netPrem>=0?'收入 +':'支出 '}${netPrem.toFixed(4)}</div>
+    </div>
+    <div class="scard" style="border-left-color:var(--purple)">
+      <div class="ctitle">策略构成</div>
+      <div class="cval" style="color:var(--text);font-size:11px">${legsFixed.map(l=>`${l.sign>0?'买':'卖'}${Math.abs(l.sign)>1?Math.abs(l.sign)+'×':''} ${l.type==='call'?'Call':'Put'} @${l.K}`).join(' + ')}</div>
+    </div>
+  `;
+}
+
+// ── Documentation ─────────────────────────────────────────────
+const DOCS = {
+  bull_call: `
+<h2>🟢 牛市看涨价差 Bull Call Spread</h2>
+<h3>策略概述</h3>
+<p>牛市看涨价差是一种<b>温和看涨</b>的方向性策略。通过同时买入低行权价的看涨期权、卖出高行权价的看涨期权来构建。卖出的那一腿降低了建仓成本，但也限制了最大盈利。</p>
+
+<h3>构成方式</h3>
+<table class="dtable">
+<tr><th>腿</th><th>操作</th><th>期权类型</th><th>行权价</th></tr>
+<tr><td>腿1</td><td>买入</td><td>Call</td><td>K₁ (较低)</td></tr>
+<tr><td>腿2</td><td>卖出</td><td>Call</td><td>K₂ (较高)</td></tr>
+</table>
+
+<h3>盈亏公式</h3>
+<div class="formula">净成本 = Call(K₁)权利金 − Call(K₂)权利金<br>最大盈利 = (K₂ − K₁) − 净成本<br>最大亏损 = 净成本<br>盈亏平衡 = K₁ + 净成本</div>
+
+<h3>到期情境分析</h3>
+<table class="dtable">
+<tr><th>到期股价</th><th>盈亏</th></tr>
+<tr><td>S ≤ K₁</td><td>亏损 = −净成本（最大亏损）</td></tr>
+<tr><td>K₁ < S < K₂</td><td>盈亏 = (S − K₁) − 净成本</td></tr>
+<tr><td>S ≥ K₂</td><td>盈利 = (K₂ − K₁) − 净成本（最大盈利）</td></tr>
+</table>
+
+<h3>适用场景</h3>
+<ul>
+<li>看涨但预期涨幅有限（不会暴涨）</li>
+<li>想降低买入看涨期权的成本</li>
+<li>愿意用盈利上限换取更低的入场成本</li>
+</ul>
+
+<h3>Greeks 特征</h3>
+<ul>
+<li><b>Delta</b>：正值，随股价上涨先增大后减小</li>
+<li><b>Theta</b>：当股价接近低行权价时为负（时间衰减不利），接近高行权价时为正</li>
+<li><b>Vega</b>：接近平值时为正（波动率上升有利）</li>
+</ul>
+
+<div class="tip">💡 适合对标的温和看涨、不想承担无限亏损风险的投资者。是新手学习价差策略的最佳入门选择。</div>
+`,
+  bear_put: `
+<h2>🔴 熊市看跌价差 Bear Put Spread</h2>
+<h3>策略概述</h3>
+<p>熊市看跌价差是一种<b>温和看跌</b>的方向性策略。买入高行权价的看跌期权，同时卖出低行权价的看跌期权，以降低净成本。</p>
+
+<h3>构成方式</h3>
+<table class="dtable">
+<tr><th>腿</th><th>操作</th><th>期权类型</th><th>行权价</th></tr>
+<tr><td>腿1</td><td>卖出</td><td>Put</td><td>K₁ (较低)</td></tr>
+<tr><td>腿2</td><td>买入</td><td>Put</td><td>K₂ (较高)</td></tr>
+</table>
+
+<h3>盈亏公式</h3>
+<div class="formula">净成本 = Put(K₂)权利金 − Put(K₁)权利金<br>最大盈利 = (K₂ − K₁) − 净成本<br>最大亏损 = 净成本<br>盈亏平衡 = K₂ − 净成本</div>
+
+<h3>到期情境分析</h3>
+<table class="dtable">
+<tr><th>到期股价</th><th>盈亏</th></tr>
+<tr><td>S ≤ K₁</td><td>盈利 = (K₂ − K₁) − 净成本（最大盈利）</td></tr>
+<tr><td>K₁ < S < K₂</td><td>盈亏 = (K₂ − S) − 净成本</td></tr>
+<tr><td>S ≥ K₂</td><td>亏损 = −净成本（最大亏损）</td></tr>
+</table>
+
+<h3>适用场景</h3>
+<ul>
+<li>看跌但预期跌幅有限（不会暴跌）</li>
+<li>想用较低成本获得看跌保护</li>
+<li>作为持仓的部分对冲</li>
+</ul>
+
+<div class="tip">💡 牛市看涨价差的镜像策略。适合温和看跌行情，是做空的保守替代方案。</div>
+`,
+  long_straddle: `
+<h2>🔵 买入跨式 Long Straddle</h2>
+<h3>策略概述</h3>
+<p>买入跨式是一种<b>做多波动率</b>的策略。在同一行权价上同时买入看涨和看跌期权，不需要判断方向，只需要标的价格<b>大幅波动</b>即可盈利。</p>
+
+<h3>构成方式</h3>
+<table class="dtable">
+<tr><th>腿</th><th>操作</th><th>期权类型</th><th>行权价</th></tr>
+<tr><td>腿1</td><td>买入</td><td>Call</td><td>K</td></tr>
+<tr><td>腿2</td><td>买入</td><td>Put</td><td>K</td></tr>
+</table>
+
+<h3>盈亏公式</h3>
+<div class="formula">总成本 = Call权利金 + Put权利金<br>最大亏损 = 总成本（当 S = K 时）<br>最大盈利 = 无限（价格大幅偏离 K）<br>上行平衡 = K + 总成本<br>下行平衡 = K − 总成本</div>
+
+<h3>到期情境分析</h3>
+<table class="dtable">
+<tr><th>到期股价</th><th>盈亏</th></tr>
+<tr><td>S < K − 总成本</td><td>盈利 = (K − S) − 总成本 ✅</td></tr>
+<tr><td>K − 总成本 ≤ S ≤ K + 总成本</td><td>亏损区间 ❌</td></tr>
+<tr><td>S > K + 总成本</td><td>盈利 = (S − K) − 总成本 ✅</td></tr>
+</table>
+
+<h3>适用场景</h3>
+<ul>
+<li>重大事件前（财报、政策公布、FDA 审批等）</li>
+<li>预期市场将大幅波动，但方向不确定</li>
+<li>隐含波动率（IV）相对历史波动率偏低时</li>
+</ul>
+
+<h3>风险提示</h3>
+<div class="warn">⚠️ 最大敌人是时间衰减（Theta）。如果标的不动，每天都在亏钱。IV 下降（波动率坍塌）也会造成双杀。财报后 IV 骤降是经典陷阱。</div>
+`,
+  short_straddle: `
+<h2>🟡 卖出跨式 Short Straddle</h2>
+<h3>策略概述</h3>
+<p>卖出跨式是一种<b>做空波动率</b>的策略。在同一行权价上同时卖出看涨和看跌期权，赚取双份权利金。适合预期市场<b>横盘震荡</b>不动的场景。</p>
+
+<h3>构成方式</h3>
+<table class="dtable">
+<tr><th>腿</th><th>操作</th><th>期权类型</th><th>行权价</th></tr>
+<tr><td>腿1</td><td>卖出</td><td>Call</td><td>K</td></tr>
+<tr><td>腿2</td><td>卖出</td><td>Put</td><td>K</td></tr>
+</table>
+
+<h3>盈亏公式</h3>
+<div class="formula">总收入 = Call权利金 + Put权利金<br>最大盈利 = 总收入（当 S = K 时）<br>最大亏损 = 无限（价格大幅偏离 K）<br>上行平衡 = K + 总收入<br>下行平衡 = K − 总收入</div>
+
+<h3>适用场景</h3>
+<ul>
+<li>预期市场将在窄幅震荡</li>
+<li>隐含波动率（IV）偏高，预期 IV 将回落</li>
+<li>做市商收割时间价值的经典策略</li>
+</ul>
+
+<h3>Greeks 特征</h3>
+<ul>
+<li><b>Theta</b>：大幅为正 — 时间是你的朋友，每天赚取时间衰减</li>
+<li><b>Gamma</b>：大幅为负 — 价格快速波动是最大风险</li>
+<li><b>Vega</b>：为负 — 波动率下降有利</li>
+</ul>
+
+<div class="warn">⚠️ 高风险策略！亏损理论上无限。必须设严格止损，或搭配买入更远行权价的期权构成铁鹰式来限制风险。</div>
+`,
+  iron_condor: `
+<h2>🟣 铁鹰式 Iron Condor</h2>
+<h3>策略概述</h3>
+<p>铁鹰式是<b>卖出跨式的升级版</b>，通过在两侧各加一个买入的保护腿，将无限亏损锁定为有限。本质上是同时构建一个牛市看跌价差 + 一个熊市看涨价差。是<b>机构和专业交易者最常用的收入型策略</b>之一。</p>
+
+<h3>构成方式</h3>
+<table class="dtable">
+<tr><th>腿</th><th>操作</th><th>期权类型</th><th>行权价</th></tr>
+<tr><td>腿1</td><td>买入</td><td>Put</td><td>K₁ (最低)</td></tr>
+<tr><td>腿2</td><td>卖出</td><td>Put</td><td>K₂</td></tr>
+<tr><td>腿3</td><td>卖出</td><td>Call</td><td>K₃</td></tr>
+<tr><td>腿4</td><td>买入</td><td>Call</td><td>K₄ (最高)</td></tr>
+</table>
+
+<h3>盈亏公式</h3>
+<div class="formula">净收入 = 卖出权利金总和 − 买入权利金总和<br>最大盈利 = 净收入（K₂ ≤ S ≤ K₃ 时）<br>最大亏损 = max(K₂−K₁, K₄−K₃) − 净收入<br>上行平衡 = K₃ + 净收入<br>下行平衡 = K₂ − 净收入</div>
+
+<h3>到期情境分析</h3>
+<table class="dtable">
+<tr><th>到期股价</th><th>盈亏</th></tr>
+<tr><td>S ≤ K₁</td><td>最大亏损</td></tr>
+<tr><td>K₁ < S < K₂</td><td>亏损逐渐减少</td></tr>
+<tr><td>K₂ ≤ S ≤ K₃</td><td>最大盈利 = 净收入 ✅</td></tr>
+<tr><td>K₃ < S < K₄</td><td>盈利逐渐减少</td></tr>
+<tr><td>S ≥ K₄</td><td>最大亏损</td></tr>
+</table>
+
+<h3>适用场景</h3>
+<ul>
+<li>预期标的在一个区间内震荡</li>
+<li>IV 偏高，想做空波动率但限制风险</li>
+<li>追求稳定的权利金收入</li>
+</ul>
+
+<h3>调整技巧</h3>
+<ul>
+<li><b>宽度调整</b>：K₂ 和 K₃ 之间越宽，胜率越高但最大盈利越低</li>
+<li><b>翼宽调整</b>：K₁-K₂ 和 K₃-K₄ 的间距决定最大亏损</li>
+<li><b>偏移调整</b>：可以不对称构建，偏向看涨或看跌方向</li>
+</ul>
+
+<div class="tip">💡 铁鹰式是从"无限风险"进化到"有限风险"的关键策略。建议新手从这里开始学习卖方策略。典型场景：月度到期的 SPY 期权。</div>
+`,
+  butterfly: `
+<h2>🟠 蝶式价差 Butterfly Spread</h2>
+<h3>策略概述</h3>
+<p>蝶式价差是一种<b>精准预测</b>型策略，在三个行权价上构建。当你预期到期时股价会<b>精确落在某个价位附近</b>时使用。成本低，但需要非常精准的预判。</p>
+
+<h3>构成方式</h3>
+<table class="dtable">
+<tr><th>腿</th><th>操作</th><th>期权类型</th><th>行权价</th><th>数量</th></tr>
+<tr><td>腿1</td><td>买入</td><td>Call</td><td>K₁ (低)</td><td>1 份</td></tr>
+<tr><td>腿2</td><td>卖出</td><td>Call</td><td>K₂ (中)</td><td>2 份</td></tr>
+<tr><td>腿3</td><td>买入</td><td>Call</td><td>K₃ (高)</td><td>1 份</td></tr>
+</table>
+<p>注：通常 K₂ = (K₁ + K₃) / 2，三个行权价等间距排列。</p>
+
+<h3>盈亏公式</h3>
+<div class="formula">净成本 = Call(K₁) + Call(K₃) − 2×Call(K₂)<br>最大盈利 = (K₂ − K₁) − 净成本（当 S = K₂ 时）<br>最大亏损 = 净成本<br>下行平衡 = K₁ + 净成本<br>上行平衡 = K₃ − 净成本</div>
+
+<h3>到期情境分析</h3>
+<table class="dtable">
+<tr><th>到期股价</th><th>盈亏</th></tr>
+<tr><td>S ≤ K₁</td><td>亏损 = −净成本</td></tr>
+<tr><td>K₁ < S < K₂</td><td>盈亏 = (S − K₁) − 净成本</td></tr>
+<tr><td>S = K₂</td><td>最大盈利 ✅</td></tr>
+<tr><td>K₂ < S < K₃</td><td>盈亏 = (K₃ − S) − 净成本</td></tr>
+<tr><td>S ≥ K₃</td><td>亏损 = −净成本</td></tr>
+</table>
+
+<h3>适用场景</h3>
+<ul>
+<li>精准预期到期价格（如支撑位、整数关口）</li>
+<li>想用极低成本博取高盈亏比</li>
+<li>临近到期日构建（时间衰减对卖出腿有利）</li>
+</ul>
+
+<h3>变体</h3>
+<ul>
+<li><b>Put Butterfly</b>：用 Put 替代 Call 构建，盈亏图形相同</li>
+<li><b>Iron Butterfly</b>：用 Call + Put 混合构建，净收入而非净支出</li>
+<li><b>Broken Wing</b>：非等间距行权价，一侧不对称</li>
+</ul>
+
+<div class="tip">💡 蝶式的盈亏比可以非常高（成本 1 元，最大盈利 9 元），但需要精准预判到期价格。适合在到期前 1-2 周、波动率低的环境下构建。</div>
+`,
+};
+
+function renderDoc() {
+  eid('docPanel').innerHTML = DOCS[activeStrat] || '';
+}
+
+// ── Init ──────────────────────────────────────────────────────
+renderStratList();
+selectStrat('bull_call');
+</script>
+</body>
+</html>
