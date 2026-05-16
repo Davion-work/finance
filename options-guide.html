@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>期权策略指南 — 实现逻辑与场景应用</title>
+<title>期权策略指南 — 场景索引 · 实现逻辑</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -22,7 +22,7 @@ body {
 .hdr {
   background: var(--surface); border-bottom: 1px solid var(--border);
   padding: 10px 20px; display: flex; align-items: center; gap: 10px;
-  position: sticky; top: 0; z-index: 10;
+  position: sticky; top: 0; z-index: 30;
 }
 .hdr h1 { font-size: 14px; font-weight: 600; color: #f0f6fc; }
 .tab-nav { display: flex; gap: 4px; margin-left: 20px; }
@@ -40,10 +40,7 @@ body {
 }
 
 /* Layout */
-.container {
-  max-width: 1320px; margin: 0 auto;
-  padding: 24px 20px 48px;
-}
+.container { max-width: 1320px; margin: 0 auto; padding: 24px 20px 48px; }
 
 .intro {
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
@@ -52,21 +49,23 @@ body {
 .intro h2 { font-size: 15px; color: #f0f6fc; margin-bottom: 8px; }
 .intro p { color: var(--muted); font-size: 12.5px; }
 .intro p b { color: var(--text); }
+.intro .hint { font-size: 11.5px; color: var(--muted); margin-top: 6px;
+  padding: 6px 10px; background: rgba(31,111,235,.06);
+  border-left: 2px solid var(--accent); border-radius: 4px; }
+.intro .hint b { color: var(--blue); }
 
 /* Section title */
 .section-title {
   font-size: 18px; font-weight: 600; color: #f0f6fc;
   padding: 4px 0 14px; display: flex; align-items: center; gap: 12px;
-  margin-top: 6px;
+  margin-top: 6px; scroll-margin-top: 60px;
 }
 .section-title .num {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 7px;
   background: var(--accent); color: #fff; font-size: 12px; font-weight: 700;
 }
-.section-sub {
-  font-size: 12px; color: var(--muted); margin: -6px 0 16px 38px;
-}
+.section-sub { font-size: 12px; color: var(--muted); margin: -6px 0 16px 38px; }
 
 /* Subgroup heading */
 .subgroup {
@@ -78,7 +77,83 @@ body {
 .subgroup h3 { font-size: 13.5px; color: var(--text); font-weight: 600; }
 .subgroup small { color: var(--muted); font-size: 11px; }
 
-/* Strategy grid */
+/* ==== Scenario matrix ==== */
+.matrix {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+}
+@media (max-width: 720px)  { .matrix { grid-template-columns: 1fr; } }
+
+.scn-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 12px;
+  transition: border-color .15s;
+}
+.scn-card:hover { border-color: rgba(31,111,235,.4); }
+.scn-card .scn-h {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.scn-card .scn-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.scn-card h5 { font-size: 13.5px; color: #f0f6fc; font-weight: 600; }
+.scn-card .scn-cn { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+
+.scn-detail {
+  font-size: 11.5px; line-height: 1.75; color: var(--text);
+  padding: 8px 11px; background: rgba(31,111,235,.05);
+  border-left: 2px solid var(--accent); border-radius: 4px;
+}
+.scn-detail b { color: #f0f6fc; }
+.scn-detail i { color: var(--yellow); font-style: normal; }
+
+.rec-list { display: flex; flex-direction: column; gap: 7px; }
+
+.rec {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 11px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.rec-h {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px;
+}
+.rec-h .rank {
+  flex-shrink: 0; min-width: 36px; text-align: center;
+  padding: 2px 5px; border-radius: 3px; font-size: 9.5px; font-weight: 700;
+  letter-spacing: .04em;
+}
+.rec-h .rank.a    { background: rgba(63,185,80,.18);  color: var(--green); }
+.rec-h .rank.b    { background: rgba(31,111,235,.18); color: var(--blue); }
+.rec-h .rank.c    { background: rgba(248,81,73,.18);  color: var(--red); }
+.rec-h .rank.warn { background: rgba(240,136,62,.18); color: var(--orange); }
+
+.rec-name {
+  color: var(--text); font-weight: 600; font-size: 12px;
+  text-decoration: none; cursor: pointer;
+  border-bottom: 1px dotted transparent;
+  transition: color .12s, border-color .12s;
+}
+.rec-name:hover { color: var(--blue); border-bottom-color: var(--blue); }
+.rec-name::after {
+  content: '↗'; font-size: 9px; opacity: .5; margin-left: 3px;
+  vertical-align: super;
+}
+.rec-name.ext::after { content: '↗'; opacity: .4; }
+
+.rec-pros, .rec-cons {
+  font-size: 11px; line-height: 1.6;
+  padding-left: 16px; position: relative;
+  color: var(--muted);
+}
+.rec-pros::before { content: '✓'; position: absolute; left: 2px; color: var(--green); font-weight: 700; }
+.rec-cons::before { content: '✗'; position: absolute; left: 2px; color: var(--red); font-weight: 700; }
+.rec-pros b, .rec-cons b { color: var(--text); }
+
+/* ==== Strategy cards ==== */
 .grid {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
 }
@@ -88,10 +163,9 @@ body {
   background: var(--surface); border: 1px solid var(--border);
   border-left: 3px solid var(--accent); border-radius: 10px;
   padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;
+  scroll-margin-top: 60px;
 }
-.card .head {
-  display: flex; align-items: flex-start; gap: 14px;
-}
+.card .head { display: flex; align-items: flex-start; gap: 14px; }
 .card .titlewrap { flex: 1; min-width: 0; }
 .card h4 {
   font-size: 14.5px; color: #f0f6fc; font-weight: 600;
@@ -125,10 +199,7 @@ body {
   white-space: pre-wrap;
 }
 
-.legs {
-  display: flex; flex-direction: column; gap: 4px;
-  font-size: 11.5px;
-}
+.legs { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; }
 .leg { display: flex; align-items: center; gap: 6px; }
 .leg .op {
   display: inline-block; min-width: 38px; text-align: center;
@@ -161,45 +232,6 @@ body {
   text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px;
 }
 
-/* Scenario matrix */
-.matrix {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
-}
-@media (max-width: 1100px) { .matrix { grid-template-columns: repeat(2,1fr); } }
-@media (max-width: 720px)  { .matrix { grid-template-columns: 1fr; } }
-
-.scn-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-  padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
-}
-.scn-card .scn-h {
-  display: flex; align-items: center; gap: 8px;
-  padding-bottom: 8px; border-bottom: 1px solid var(--border);
-}
-.scn-card .scn-icon {
-  width: 28px; height: 28px; border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; flex-shrink: 0;
-}
-.scn-card h5 { font-size: 13px; color: #f0f6fc; font-weight: 600; }
-.scn-card .scn-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
-
-.rec-list { display: flex; flex-direction: column; gap: 6px; }
-.rec {
-  display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px;
-  padding: 6px 8px; border-radius: 5px; background: var(--bg);
-}
-.rec .rank {
-  flex-shrink: 0; min-width: 38px; text-align: center;
-  padding: 1px 5px; border-radius: 3px; font-size: 9.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .04em;
-}
-.rec .rank.a { background: rgba(63,185,80,.18); color: var(--green); }
-.rec .rank.b { background: rgba(31,111,235,.18); color: var(--blue); }
-.rec .rank.c { background: rgba(248,81,73,.18); color: var(--red); }
-.rec .name { color: var(--text); font-weight: 600; }
-.rec .why  { color: var(--muted); margin-top: 2px; }
-
 /* Compare table */
 .compare-wrap {
   margin-top: 32px; background: var(--surface); border: 1px solid var(--border);
@@ -229,6 +261,9 @@ table.compare td .pill {
 .pill.flat { background: rgba(139,148,158,.14); color: var(--muted); }
 .pill.lim { background: rgba(31,111,235,.14); color: var(--blue); }
 
+table.compare a.strat-link { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--border); }
+table.compare a.strat-link:hover { color: var(--blue); border-bottom-color: var(--blue); }
+
 /* Footer note */
 .foot {
   margin-top: 32px; padding: 14px 16px;
@@ -236,6 +271,29 @@ table.compare td .pill {
   font-size: 11.5px; color: var(--muted); line-height: 1.7;
 }
 .foot b { color: var(--text); }
+
+/* === Flash highlight on jump === */
+.flash {
+  animation: flash 1.4s ease;
+}
+@keyframes flash {
+  0%   { box-shadow: 0 0 0 0 rgba(31,111,235,.7); }
+  20%  { box-shadow: 0 0 0 3px rgba(31,111,235,.7); }
+  100% { box-shadow: 0 0 0 0 rgba(31,111,235,0); }
+}
+
+/* Quick-jump nav */
+.qjump {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: -6px 0 22px 38px;
+}
+.qjump a {
+  font-size: 11px; padding: 3px 9px; border-radius: 4px;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--muted); text-decoration: none;
+  transition: all .12s;
+}
+.qjump a:hover { color: var(--blue); border-color: var(--accent); background: rgba(31,111,235,.08); }
 </style>
 </head>
 <body>
@@ -248,19 +306,425 @@ table.compare td .pill {
     <a href="options-payoff.html">单腿策略</a>
     <a href="options-strategy.html">组合策略</a>
   </div>
-  <span class="tag">10 种策略 · 12 类场景</span>
+  <span class="tag">12 类场景 · 10 种策略</span>
 </div>
 
 <div class="container">
 
 <div class="intro">
   <h2>关于本指南</h2>
-  <p>本页是仓库内 <b>4 种单腿策略</b>（Buy/Sell · Call/Put）与 <b>6 种组合策略</b>（牛市价差、熊市价差、跨式买/卖、铁鹰、蝶式）的<b>结构化文档</b>。上半部分按策略组织，详解每个策略的<b>实现逻辑、构成方式、盈亏公式、Greeks 特征与适用场景</b>；下半部分按 12 类典型行情场景反向索引，给出<b>首选 / 备选 / 应避免</b>的策略推荐。</p>
+  <p><b>上半部分</b>按 12 类典型行情场景反向索引：每种场景描述其市场背景与触发条件，并给出<b>首选 / 备选 / 应避免</b>的策略推荐，附详细优缺点权衡。<b>下半部分</b>按策略组织，详解每个策略的实现逻辑、构成方式、Greeks 与适用情形。</p>
+  <div class="hint">💡 <b>点击任何策略名称</b>（如 Long Call ↗）即可跳转到对应的详细介绍卡片。术语含义请参见<a href="options-glossary.html" style="color:var(--blue)">术语词典</a>。</div>
 </div>
 
-<!-- ========== Section 1: Strategies ========== -->
-<div class="section-title">
+<!-- ============================================================
+     Section 1: SCENARIO INDEX
+     ============================================================ -->
+<div class="section-title" id="sec-scenarios">
   <span class="num">1</span>
+  场景 → 策略 推荐索引
+</div>
+<div class="section-sub">按行情场景反向索引：在每种场景下应该选哪个策略，及其完整的优缺点权衡</div>
+<div class="qjump">
+  <a href="#scn-strong-bull">强烈看涨</a>
+  <a href="#scn-mild-bull">温和看涨</a>
+  <a href="#scn-rangebound">横盘震荡</a>
+  <a href="#scn-mild-bear">温和看跌</a>
+  <a href="#scn-strong-bear">强烈看跌</a>
+  <a href="#scn-event">大幅波动</a>
+  <a href="#scn-high-iv">IV 偏高</a>
+  <a href="#scn-low-iv">IV 偏低</a>
+  <a href="#scn-pinpoint">精准点位</a>
+  <a href="#scn-hedge">持仓对冲</a>
+  <a href="#scn-income">月度收益</a>
+  <a href="#scn-near-expiry">临近到期</a>
+</div>
+
+<div class="matrix">
+
+  <!-- 1. 强烈看涨 -->
+  <div class="scn-card" id="scn-strong-bull">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(63,185,80,.15)">📈</div>
+      <div>
+        <h5>强烈看涨</h5>
+        <div class="scn-cn">Strong Bullish</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      标的有<b>明确的多头催化剂</b>——重大利好财报、新产品发布、技术面突破长期阻力位、政策风口确立。预期未来 1-2 周内出现快速大幅上涨（10% 以上）。<br>
+      <i>最佳条件</i>：IV 处于历史中低分位、市场情绪未过度乐观、催化剂清晰可见。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#long-call" class="rec-name">Long Call</a></div>
+        <div class="rec-pros">上行<b>无封顶</b>；杠杆远高于直接买股；最大亏损只是权利金；预判正确时收益爆炸</div>
+        <div class="rec-cons">Theta 是天敌——OTM Call 在标的不动时每天损失加速；如果 IV 已偏高，溢价昂贵且事件后承受 Vol Crush</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><a href="#bull-call-spread" class="rec-name">Bull Call Spread</a></div>
+        <div class="rec-pros">卖出腿降低净成本约 <b>30-50%</b>；对 IV 不敏感；高 IV 环境下比裸 Call 更优</div>
+        <div class="rec-cons">收益被高 K 行权价封顶；行情真暴涨时少赚很多；2 腿构造手续费略高</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank c">避免</span><a href="#short-put" class="rec-name">Short Put</a></div>
+        <div class="rec-cons">收益最多权利金，<b>错过大涨幅</b>；万一标的不涨反跌还会被指派接货；不是看涨表达方式</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 温和看涨 -->
+  <div class="scn-card" id="scn-mild-bull">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(63,185,80,.15)">🌱</div>
+      <div>
+        <h5>温和看涨</h5>
+        <div class="scn-cn">Mildly Bullish</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      看好标的但有<b>明显阻力</b>——临近重要前高、估值已不便宜、行业龙头压制、技术面缺乏突破动能。预期上涨节奏缓慢、有上限（如 3 个月内不超过 +15%）。<br>
+      <i>典型情境</i>：财报后温和上调指引、行业从负面反转、长期趋势线之上的回调结束。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#bull-call-spread" class="rec-name">Bull Call Spread</a></div>
+        <div class="rec-pros">成本约为 Long Call 的 <b>50-70%</b>；收益空间精准匹配阻力位；高胜率</div>
+        <div class="rec-cons">收益封顶；构建需要选两个 K；价差宽度选择需要经验</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#short-put" class="rec-name">Short Put</a></div>
+        <div class="rec-pros">横盘或缓涨都能赚权利金（胜率 70%+）；万一被指派 = <b>折扣价接到目标股</b>；适合长期看好的标的</div>
+        <div class="rec-cons">必须冻结现金担保；遇黑天鹅一次亏损可能抹掉数月收入</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><a href="options-glossary.html#covered" class="rec-name ext">Covered Call</a></div>
+        <div class="rec-pros">持有正股的"二房东"模式；月度增强收益 <b>1-3%</b>；IV 高时尤佳</div>
+        <div class="rec-cons">大涨时被迫低价交付正股；看错方向时下跌损失只被权利金少量缓冲</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 横盘震荡 -->
+  <div class="scn-card" id="scn-rangebound">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(188,140,255,.15)">🌊</div>
+      <div>
+        <h5>横盘震荡 (区间)</h5>
+        <div class="scn-cn">Range-Bound</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      标的在<b>明确的支撑/阻力区间</b>内来回波动——周期性整理、缺乏明确催化剂、夏季交易冷淡期、消息真空期。预期未来 2-4 周不会突破区间。<br>
+      <i>最佳条件</i>：IV Rank ≥ 50（期权偏贵）、技术面有清晰的双边边界、宏观无重大事件。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#iron-condor" class="rec-name">Iron Condor</a></div>
+        <div class="rec-pros">风险有限可控；区间内任何位置都赚钱；K₂/K₃ 卡区间边界是教科书做法；月度滚动<b>胜率 65-75%</b></div>
+        <div class="rec-cons">4 腿构造手续费高；行情突破任一边即最大亏损；调整繁琐</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><a href="#short-straddle" class="rec-name">Short Straddle</a></div>
+        <div class="rec-pros">收益更高（不付保护腿成本）；保证金占用相对低；Theta 收益更直接</div>
+        <div class="rec-cons">双向<b>无限亏损</b>风险；保证金一次黑天鹅可能被强平；适合专业玩家</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank c">避免</span><a href="#long-straddle" class="rec-name">Long Straddle</a> / <a href="#long-call" class="rec-name">Long Call</a> / <a href="#long-put" class="rec-name">Long Put</a></div>
+        <div class="rec-cons">横盘下时间衰减<b>直接吞噬权利金</b>；方向再准没有幅度也是输；最不适合的策略类</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 温和看跌 -->
+  <div class="scn-card" id="scn-mild-bear">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(248,81,73,.15)">🍂</div>
+      <div>
+        <h5>温和看跌</h5>
+        <div class="scn-cn">Mildly Bearish</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      看跌但已临近<b>关键支撑位</b>——熊市末期反弹无力的震荡下行、基本面温和恶化、技术面破位但尚未跳水。预期跌幅有限（如不超过 -10%）。<br>
+      <i>典型情境</i>：财报指引下调但未爆雷、行业景气度边际走弱、估值中枢下移。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#bear-put-spread" class="rec-name">Bear Put Spread</a></div>
+        <div class="rec-pros">借方成本低；收益匹配支撑位深度；不怕 IV 回落；构造直观</div>
+        <div class="rec-cons">收益封顶；构建需要两腿；标的快速跳水时少赚很多</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><span class="rec-name" style="cursor:default;border-bottom:none">Bear Call Spread</span></div>
+        <div class="rec-pros">贷方收入策略，IV 高时尤佳；只要标的不大涨就赚钱；保证金低</div>
+        <div class="rec-cons">收益上限低（仅净权利金）；最大亏损是价差宽度减权利金；不适合 IV 低环境</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank c">避免</span><a href="#short-put" class="rec-name">Short Put</a></div>
+        <div class="rec-cons">看跌却卖看跌 = <b>接飞刀</b>；标的真跌破支撑会被指派承担正股下跌风险</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 强烈看跌 / 崩盘 -->
+  <div class="scn-card" id="scn-strong-bear">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(248,81,73,.15)">📉</div>
+      <div>
+        <h5>强烈看跌 / 崩盘风险</h5>
+        <div class="scn-cn">Strong Bearish / Tail Risk</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      <b>系统性风险事件</b>（地缘冲突、流动性危机、估值过度泡沫即将破裂）或<b>个股黑天鹅</b>（财务造假、监管处罚、产品缺陷召回）。预期标的快速大幅下跌，或需要对冲尾部风险。<br>
+      <i>挑战</i>：恐慌情绪升温时 IV 通常已被推高，期权权利金昂贵。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#long-put" class="rec-name">Long Put</a></div>
+        <div class="rec-pros">下行空间大，最大盈利 <b>K - 权利金</b>；多头持仓最直接的对冲；崩盘时收益爆炸</div>
+        <div class="rec-cons">IV 通常已被推高（恐慌溢价），权利金贵；崩盘后 IV 见顶可能赚不动</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><a href="#bear-put-spread" class="rec-name">Bear Put Spread</a></div>
+        <div class="rec-pros">IV 高时<b>性价比好于裸 Put</b>；锁定确定的成本/收益比；可控风险</div>
+        <div class="rec-cons">收益封顶；崩盘真发生时少赚很多</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank c">避免</span><a href="#short-call" class="rec-name">Short Call</a> (裸)</div>
+        <div class="rec-cons">方向虽对但反弹时<b>无限亏损</b>；保证金一次大涨被强平；专业禁忌</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 大幅波动 -->
+  <div class="scn-card" id="scn-event">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(88,166,255,.15)">💥</div>
+      <div>
+        <h5>大幅波动 / 方向不定</h5>
+        <div class="scn-cn">Event-Driven · Unknown Direction</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      已知有<b>重大事件即将揭晓</b>——财报、FDA 审批、并购公告、央行决议、法院判决——但方向不明。预期事件后标的将大幅波动（5%+）。<br>
+      <i>关键时机</i>：必须在 IV 升至高位<b>之前 1-2 天</b>建仓，否则白送钱给对手方。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#long-straddle" class="rec-name">Long Straddle</a></div>
+        <div class="rec-pros">同 K 双买，<b>方向中性</b>；只押幅度不押方向；事件爆出大行情时双向通吃</div>
+        <div class="rec-cons">总成本高（双倍权利金）；标的没动 / 动得不够大都是亏；事件后 <b>Vol Crush</b> 是经典杀手</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><span class="rec-name" style="cursor:default;border-bottom:none">Long Strangle</span></div>
+        <div class="rec-pros">不同 K 双买，成本比 Straddle <b>低 30-40%</b>；适合预期波动极大的事件</div>
+        <div class="rec-cons">需要更大的波动才能盈利；两侧 OTM 衰减更快</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank warn">陷阱</span><span class="rec-name" style="cursor:default;border-bottom:none">事件后才入场</span></div>
+        <div class="rec-cons">IV 已被推到极高，揭晓后<b>价值崩塌</b>；新手最常踩的坑</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. IV 偏高 -->
+  <div class="scn-card" id="scn-high-iv">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(210,153,34,.15)">🔥</div>
+      <div>
+        <h5>IV 偏高 (≥80% 分位)</h5>
+        <div class="scn-cn">High Implied Volatility</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      隐含波动率显著高于历史均值（<b>IV Rank ≥ 50</b>）。说明期权"贵"——市场预期未来波动 &gt; 实际可能波动，构成"波动率风险溢价"，对应卖方的盈利来源。<br>
+      <i>常见时机</i>：财报季前后、大事件前、市场紧张时期。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#iron-condor" class="rec-name">Iron Condor</a> / <a href="#short-straddle" class="rec-name">Short Straddle</a></div>
+        <div class="rec-pros">Vega 为负，赚 IV <b>回归的钱</b>；Theta 加成；可月度滚动构建系统性收入</div>
+        <div class="rec-cons">行情突破区间即最大亏损；Iron Condor 4 腿手续费高；Short Straddle 风险无限</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><span class="rec-name" style="cursor:default;border-bottom:none">Bull Put / Bear Call Spread</span></div>
+        <div class="rec-pros">单边方向 + 收时间价值；保证金占用低；<b>高 IV 时净收入更厚</b></div>
+        <div class="rec-cons">方向看错就吃满最大亏损；收益空间被价差宽度限定</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank c">避免</span><a href="#long-call" class="rec-name">Long Call</a> / <a href="#long-put" class="rec-name">Long Put</a></div>
+        <div class="rec-cons">支付高溢价；IV 一回归即贬值；<b>方向看对都赚不到</b>钱</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. IV 偏低 -->
+  <div class="scn-card" id="scn-low-iv">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(57,197,207,.15)">🧊</div>
+      <div>
+        <h5>IV 偏低 (≤20% 分位)</h5>
+        <div class="scn-cn">Low Implied Volatility</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      IV 处于历史低位（<b>IV Rank ≤ 20</b>）。期权"便宜"——常见于夏季冷淡市、长期横盘后的市场、宏观稳定期。这是<b>买方策略最好的入场时机</b>，做多波动率的"播种期"。<br>
+      <i>核心逻辑</i>：IV 终将回归（均值回复），现在便宜的权利金即未来涨价的资产。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#long-straddle" class="rec-name">Long Straddle</a> / <span class="rec-name" style="cursor:default;border-bottom:none">Long Strangle</span></div>
+        <div class="rec-pros">权利金便宜；做多 Vega <b>性价比极高</b>；IV 即使回归正常都能赚钱</div>
+        <div class="rec-cons">还是需要标的真的走出明显行情；横盘 + 时间衰减仍可能亏损</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><a href="#long-call" class="rec-name">Long Call</a> / <a href="#long-put" class="rec-name">Long Put</a></div>
+        <div class="rec-pros">单边方向 + 廉价权利金；杠杆高；事件来临时收益爆炸</div>
+        <div class="rec-cons">方向押错权利金归零；如果押对方向但行情温和，时间衰减还是会咬一口</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank c">避免</span><a href="#short-straddle" class="rec-name">Short Straddle</a> / <a href="#iron-condor" class="rec-name">Iron Condor</a></div>
+        <div class="rec-cons">收的权利金<b>已经很薄</b>，做空波动率没意思；风险/收益比不划算</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. 精准点位预测 -->
+  <div class="scn-card" id="scn-pinpoint">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(240,136,62,.15)">🎯</div>
+      <div>
+        <h5>精准点位预测</h5>
+        <div class="scn-cn">Pinpoint Target Price</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      对到期价位有<b>强逻辑判断</b>——重要整数关口（如 SPX 5000、SPY 600）、长期支撑/阻力、技术目标价（波浪理论目标位）。预期到期日标的将精确落在目标价附近 ±2%。<br>
+      <i>典型用法</i>：临近到期 1-2 周构建，盈亏比可达 5×~10×。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#butterfly" class="rec-name">Butterfly Spread</a></div>
+        <div class="rec-pros">盈亏比可达 <b>5×~10×</b>；K₂ 钉死目标价；低成本博取高收益；适合临近到期</div>
+        <div class="rec-cons">需要非常精准的预判，落点偏离即归零；盈利窗口窄（K₂±差额）</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><span class="rec-name" style="cursor:default;border-bottom:none">Iron Butterfly</span></div>
+        <div class="rec-pros">贷方版本，<b>净收入构造</b>；不需要付出净成本</div>
+        <div class="rec-cons">风险/收益比不同，最大盈利 &lt; 净收入；构造稍复杂</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><span class="rec-name" style="cursor:default;border-bottom:none">Broken Wing Butterfly</span></div>
+        <div class="rec-pros">不对称翼，可<b>微调方向偏好</b>；适合"目标价 + 单边方向"的混合判断</div>
+        <div class="rec-cons">构造复杂；调整需要经验</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. 持仓对冲 -->
+  <div class="scn-card" id="scn-hedge">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(31,111,235,.15)">🛡️</div>
+      <div>
+        <h5>持仓对冲 / 保险</h5>
+        <div class="scn-cn">Portfolio Hedging</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      已有<b>重要正股持仓</b>（长线持有的科技股、退休账户、不愿卖出的核心仓位）担心系统性下跌或单一事件冲击。需要保留上行参与权，同时控制下行风险。<br>
+      <i>预算选择</i>：可分为"零成本对冲"（Collar）和"愿付保费"（Protective Put）两种思路。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="options-glossary.html#protective" class="rec-name ext">Protective Put</a></div>
+        <div class="rec-pros">直接买下行保险，思路简单清晰；<b>保留上行</b>参与；崩盘时保护到位</div>
+        <div class="rec-cons">权利金是真金白银的"保费"成本；正常市可能每年损耗 3-8%</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="options-glossary.html#collar" class="rec-name ext">Collar</a></div>
+        <div class="rec-pros">卖 OTM Call 的权利金抵消 Put 成本，可<b>零成本对冲</b>；机构常用</div>
+        <div class="rec-cons">上行被 Call 封顶，错过大涨幅；构造涉及 3 个头寸</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><a href="#bear-put-spread" class="rec-name">Bear Put Spread</a></div>
+        <div class="rec-pros">局部对冲，<b>成本最低</b>；价差宽度可灵活选择</div>
+        <div class="rec-cons">极端崩盘时保护不足（亏到价差下限就停了）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. 月度收时间价值 -->
+  <div class="scn-card" id="scn-income">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(63,185,80,.15)">⏳</div>
+      <div>
+        <h5>月度收时间价值</h5>
+        <div class="scn-cn">Systematic Income</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      <b>系统化的卖方收益策略</b>，把期权当保险卖。需要稳定可控的现金流，能承担小概率黑天鹅。适合资金量较大、能承受偶尔最大亏损的账户。<br>
+      <i>执行节奏</i>：一般月度滚动，IV Rank &gt; 30 时入场，DTE 30-45 天为甜区。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#iron-condor" class="rec-name">Iron Condor</a> (月度滚动)</div>
+        <div class="rec-pros">机构最常用；<b>胜率 70%+</b>；风险有限；可机械化执行</div>
+        <div class="rec-cons">需选股、选时、调整繁琐；4 腿手续费高；遇大行情吃满最大亏损</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="options-glossary.html#wheel" class="rec-name ext">Wheel</a> (CSP→Covered Call)</div>
+        <div class="rec-pros">长期持有标的的现金流；最坏结果是<b>低价接到自己也想要的股</b>；简单可执行</div>
+        <div class="rec-cons">熊市中持续套牢；需筛选愿意长期持有的标的；资金占用大</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><span class="rec-name" style="cursor:default;border-bottom:none">Credit Spreads</span></div>
+        <div class="rec-pros">单边方向 + 收时间价值；<b>保证金低</b>；可灵活配置 Bull Put 或 Bear Call</div>
+        <div class="rec-cons">方向看错吃满价差宽度；收益上限低</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. 临近到期 -->
+  <div class="scn-card" id="scn-near-expiry">
+    <div class="scn-h">
+      <div class="scn-icon" style="background:rgba(188,140,255,.15)">⚡</div>
+      <div>
+        <h5>临近到期博弈 (DTE ≤ 14)</h5>
+        <div class="scn-cn">Short DTE / End-of-Cycle</div>
+      </div>
+    </div>
+    <div class="scn-detail">
+      选择<b>短周期期权</b>（Days To Expiration ≤ 14）。Theta 急剧衰减、Gamma 急剧放大，是双刃剑——同样策略在临近到期表现差异巨大。<br>
+      <i>玩家分化</i>：最后一周的"Theta gang"（卖方）与"Gamma gambit"（精准博弈方向）各有玩法。
+    </div>
+    <div class="rec-list">
+      <div class="rec">
+        <div class="rec-h"><span class="rank a">首选</span><a href="#butterfly" class="rec-name">Butterfly Spread</a></div>
+        <div class="rec-pros">最后两周搭蝶式 Theta 助攻最大；<b>盈亏比最佳</b>；目标价精确判断时收益爆炸</div>
+        <div class="rec-cons">时间窗口窄，错过即归零；适合有强预判的玩家</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank b">备选</span><a href="#iron-condor" class="rec-name">Iron Condor</a> (周度)</div>
+        <div class="rec-pros">短周期 <b>Theta 收益更快</b>；高频滚动复利；周度赚小钱</div>
+        <div class="rec-cons">Gamma 风险也大，黑天鹅杀伤强；调整频繁；需要更紧的风控</div>
+      </div>
+      <div class="rec">
+        <div class="rec-h"><span class="rank c">避免</span><a href="#long-straddle" class="rec-name">Long Straddle</a> / 单腿 OTM 买方</div>
+        <div class="rec-cons">Theta 极速衰减；方向稍偏即归零；除非有<b>明确事件催化剂</b>否则绝对回避</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Section 2: STRATEGY DETAILS
+     ============================================================ -->
+<div class="section-title" id="sec-strategies" style="margin-top:36px">
+  <span class="num">2</span>
   策略详解
 </div>
 <div class="section-sub">每张卡片包含损益形状图、构成方式、关键公式、Greeks 与适用场景</div>
@@ -275,7 +739,7 @@ table.compare td .pill {
 <div class="grid">
 
   <!-- Long Call -->
-  <div class="card" style="border-left-color:var(--green)">
+  <div class="card" id="long-call" style="border-left-color:var(--green)">
     <div class="head">
       <div class="titlewrap">
         <h4>买入看涨 <span class="eng">Long Call</span> <span class="badge" style="color:var(--green);background:rgba(63,185,80,.12)">看涨 · 做多波动率</span></h4>
@@ -310,7 +774,7 @@ table.compare td .pill {
   </div>
 
   <!-- Short Call -->
-  <div class="card" style="border-left-color:var(--red)">
+  <div class="card" id="short-call" style="border-left-color:var(--red)">
     <div class="head">
       <div class="titlewrap">
         <h4>卖出看涨 <span class="eng">Short Call</span> <span class="badge" style="color:var(--red);background:rgba(248,81,73,.12)">中性偏空 · 做空波动率</span></h4>
@@ -344,7 +808,7 @@ table.compare td .pill {
   </div>
 
   <!-- Long Put -->
-  <div class="card" style="border-left-color:var(--blue)">
+  <div class="card" id="long-put" style="border-left-color:var(--blue)">
     <div class="head">
       <div class="titlewrap">
         <h4>买入看跌 <span class="eng">Long Put</span> <span class="badge" style="color:var(--blue);background:rgba(88,166,255,.12)">看跌 · 做多波动率</span></h4>
@@ -378,7 +842,7 @@ table.compare td .pill {
   </div>
 
   <!-- Short Put -->
-  <div class="card" style="border-left-color:var(--yellow)">
+  <div class="card" id="short-put" style="border-left-color:var(--yellow)">
     <div class="head">
       <div class="titlewrap">
         <h4>卖出看跌 <span class="eng">Short Put</span> <span class="badge" style="color:var(--yellow);background:rgba(210,153,34,.12)">中性偏多 · 做空波动率</span></h4>
@@ -423,7 +887,7 @@ table.compare td .pill {
 <div class="grid">
 
   <!-- Bull Call Spread -->
-  <div class="card" style="border-left-color:var(--green)">
+  <div class="card" id="bull-call-spread" style="border-left-color:var(--green)">
     <div class="head">
       <div class="titlewrap">
         <h4>牛市看涨价差 <span class="eng">Bull Call Spread</span> <span class="badge" style="color:var(--green);background:rgba(63,185,80,.12)">温和看涨 · 借方</span></h4>
@@ -453,7 +917,7 @@ table.compare td .pill {
   </div>
 
   <!-- Bear Put Spread -->
-  <div class="card" style="border-left-color:var(--red)">
+  <div class="card" id="bear-put-spread" style="border-left-color:var(--red)">
     <div class="head">
       <div class="titlewrap">
         <h4>熊市看跌价差 <span class="eng">Bear Put Spread</span> <span class="badge" style="color:var(--red);background:rgba(248,81,73,.12)">温和看跌 · 借方</span></h4>
@@ -483,7 +947,7 @@ table.compare td .pill {
   </div>
 
   <!-- Long Straddle -->
-  <div class="card" style="border-left-color:var(--blue)">
+  <div class="card" id="long-straddle" style="border-left-color:var(--blue)">
     <div class="head">
       <div class="titlewrap">
         <h4>买入跨式 <span class="eng">Long Straddle</span> <span class="badge" style="color:var(--blue);background:rgba(88,166,255,.12)">做多波动率 · 借方</span></h4>
@@ -512,7 +976,7 @@ table.compare td .pill {
   </div>
 
   <!-- Short Straddle -->
-  <div class="card" style="border-left-color:var(--yellow)">
+  <div class="card" id="short-straddle" style="border-left-color:var(--yellow)">
     <div class="head">
       <div class="titlewrap">
         <h4>卖出跨式 <span class="eng">Short Straddle</span> <span class="badge" style="color:var(--yellow);background:rgba(210,153,34,.12)">做空波动率 · 贷方</span></h4>
@@ -541,7 +1005,7 @@ table.compare td .pill {
   </div>
 
   <!-- Iron Condor -->
-  <div class="card" style="border-left-color:var(--purple)">
+  <div class="card" id="iron-condor" style="border-left-color:var(--purple)">
     <div class="head">
       <div class="titlewrap">
         <h4>铁鹰式 <span class="eng">Iron Condor</span> <span class="badge" style="color:var(--purple);background:rgba(188,140,255,.12)">区间震荡 · 风险有限</span></h4>
@@ -572,7 +1036,7 @@ table.compare td .pill {
   </div>
 
   <!-- Butterfly -->
-  <div class="card" style="border-left-color:var(--orange)">
+  <div class="card" id="butterfly" style="border-left-color:var(--orange)">
     <div class="head">
       <div class="titlewrap">
         <h4>蝶式价差 <span class="eng">Butterfly Spread</span> <span class="badge" style="color:var(--orange);background:rgba(240,136,62,.12)">精准点位 · 高盈亏比</span></h4>
@@ -604,209 +1068,6 @@ table.compare td .pill {
 
 </div>
 
-<!-- ========== Section 2: Scenario Matrix ========== -->
-<div class="section-title" style="margin-top:36px">
-  <span class="num">2</span>
-  场景 → 策略 推荐索引
-</div>
-<div class="section-sub">按 12 类典型行情场景反向索引：在每种场景下应该选哪个策略</div>
-
-<div class="matrix">
-
-  <!-- 强烈看涨 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(63,185,80,.15)">📈</div>
-      <div>
-        <h5>强烈看涨</h5>
-        <div class="scn-desc">预期标的暴涨、有催化剂、IV 不算高</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Long Call</span><div class="why">无限上行潜力，杠杆高，最大亏损封顶</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Bull Call Spread</span><div class="why">若 IV 高，用价差降低成本</div></div></div>
-      <div class="rec"><span class="rank c">避免</span><div><span class="name">Short Put</span><div class="why">收益封顶在权利金，参与不到大涨</div></div></div>
-    </div>
-  </div>
-
-  <!-- 温和看涨 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(63,185,80,.15)">🌱</div>
-      <div>
-        <h5>温和看涨</h5>
-        <div class="scn-desc">看涨但有压力位、缓涨、不指望暴涨</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Bull Call Spread</span><div class="why">成本低、收益空间匹配压力位</div></div></div>
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Short Put</span><div class="why">想低位接货时是「打折买股」工具</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Covered Call (持股+卖Call)</span><div class="why">持有正股增强收益</div></div></div>
-    </div>
-  </div>
-
-  <!-- 横盘震荡 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(188,140,255,.15)">🌊</div>
-      <div>
-        <h5>横盘震荡 (区间)</h5>
-        <div class="scn-desc">明确支撑/压力，预期区间内盘整</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Iron Condor</span><div class="why">风险有限的最优收入策略，K₂/K₃ 卡在区间边界</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Short Strangle</span><div class="why">收益更高但风险无限</div></div></div>
-      <div class="rec"><span class="rank c">避免</span><div><span class="name">Long Straddle / Long Call/Put</span><div class="why">时间衰减直接亏掉权利金</div></div></div>
-    </div>
-  </div>
-
-  <!-- 温和看跌 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(248,81,73,.15)">🍂</div>
-      <div>
-        <h5>温和看跌</h5>
-        <div class="scn-desc">看跌但有支撑位、缓跌</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Bear Put Spread</span><div class="why">成本低、收益匹配支撑位深度</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Bear Call Spread</span><div class="why">贷方价差，IV 高时更优</div></div></div>
-      <div class="rec"><span class="rank c">避免</span><div><span class="name">Short Put</span><div class="why">看跌却卖看跌 = 接飞刀</div></div></div>
-    </div>
-  </div>
-
-  <!-- 强烈看跌 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(248,81,73,.15)">📉</div>
-      <div>
-        <h5>强烈看跌 / 崩盘风险</h5>
-        <div class="scn-desc">预期暴跌或对冲尾部风险</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Long Put</span><div class="why">最大下行收益 K，对冲多头持仓首选</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Bear Put Spread</span><div class="why">若崩盘有底（如关键支撑），价差更经济</div></div></div>
-      <div class="rec"><span class="rank c">避免</span><div><span class="name">Short Call (裸)</span><div class="why">虽然方向对，但反弹时无限亏损</div></div></div>
-    </div>
-  </div>
-
-  <!-- 大幅波动方向不定 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(88,166,255,.15)">💥</div>
-      <div>
-        <h5>大幅波动 / 方向不定</h5>
-        <div class="scn-desc">财报、并购、政策日，押幅度不押方向</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Long Straddle</span><div class="why">同 K 双买，方向中性、做多波动率</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Long Strangle</span><div class="why">不同 K 双买，成本更低但需波动更大</div></div></div>
-      <div class="rec"><span class="rank c">陷阱</span><div><span class="name">事件后才入场</span><div class="why">IV 已被打高，Vol Crush 等着你</div></div></div>
-    </div>
-  </div>
-
-  <!-- IV 偏高 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(210,153,34,.15)">🔥</div>
-      <div>
-        <h5>IV 偏高 (≥80% 分位)</h5>
-        <div class="scn-desc">隐含波动率高于历史均值，IV 大概率回落</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Iron Condor / Short Strangle</span><div class="why">做空 Vega，赚 IV 回归</div></div></div>
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Bull Put / Bear Call Spread</span><div class="why">贷方价差，方向 + 做空波动率</div></div></div>
-      <div class="rec"><span class="rank c">避免</span><div><span class="name">Long Call / Long Put</span><div class="why">支付高溢价，IV 一回落即贬值</div></div></div>
-    </div>
-  </div>
-
-  <!-- IV 偏低 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(57,197,207,.15)">🧊</div>
-      <div>
-        <h5>IV 偏低 (≤20% 分位)</h5>
-        <div class="scn-desc">市场过度平静，波动率压缩到极致</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Long Straddle / Long Strangle</span><div class="why">权利金便宜，做多 Vega 性价比高</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Long Call / Long Put</span><div class="why">单边方向 + 廉价权利金</div></div></div>
-      <div class="rec"><span class="rank c">避免</span><div><span class="name">Short Straddle / Iron Condor</span><div class="why">收的权利金已经很薄，性价比差</div></div></div>
-    </div>
-  </div>
-
-  <!-- 精准点位预测 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(240,136,62,.15)">🎯</div>
-      <div>
-        <h5>精准点位预测</h5>
-        <div class="scn-desc">强逻辑判断到期落在某个具体价</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Butterfly Spread</span><div class="why">盈亏比可达 5×~10×，K₂ 钉死目标价</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Iron Butterfly</span><div class="why">贷方版蝶式，净收入构造</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Broken Wing Butterfly</span><div class="why">不对称翼，可微调方向偏好</div></div></div>
-    </div>
-  </div>
-
-  <!-- 持仓对冲 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(31,111,235,.15)">🛡️</div>
-      <div>
-        <h5>持仓对冲 / 保险</h5>
-        <div class="scn-desc">已有多头持仓，担心系统性下跌</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Protective Put</span><div class="why">买入 OTM Put 做下行保险，简单直接</div></div></div>
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Collar (持股+买Put+卖Call)</span><div class="why">用 Call 权利金抵消 Put 成本，零成本对冲</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Bear Put Spread</span><div class="why">局部对冲，成本最低</div></div></div>
-    </div>
-  </div>
-
-  <!-- 收割时间价值 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(63,185,80,.15)">⏳</div>
-      <div>
-        <h5>固定月度收益 / 收时间价值</h5>
-        <div class="scn-desc">系统性卖方策略，把期权当保险公司卖</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Iron Condor (月度滚动)</span><div class="why">机构最常用，胜率 70%+，风险有限</div></div></div>
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Wheel (Short Put → Covered Call)</span><div class="why">个股长期持有的现金流策略</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Credit Spreads</span><div class="why">单边方向 + 收时间价值</div></div></div>
-    </div>
-  </div>
-
-  <!-- 临近到期博弈 -->
-  <div class="scn-card">
-    <div class="scn-h">
-      <div class="scn-icon" style="background:rgba(188,140,255,.15)">⚡</div>
-      <div>
-        <h5>临近到期博弈 (≤2 周)</h5>
-        <div class="scn-desc">Gamma 急剧放大，Theta 急剧衰减</div>
-      </div>
-    </div>
-    <div class="rec-list">
-      <div class="rec"><span class="rank a">首选</span><div><span class="name">Butterfly Spread</span><div class="why">最后两周搭蝶式盈亏比最大化</div></div></div>
-      <div class="rec"><span class="rank b">备选</span><div><span class="name">Iron Condor (周度)</span><div class="why">短周期 Theta 收益更快</div></div></div>
-      <div class="rec"><span class="rank c">避免</span><div><span class="name">Long Straddle / 单腿 OTM 买方</span><div class="why">Theta 极速衰减，方向稍偏即归零</div></div></div>
-    </div>
-  </div>
-
-</div>
-
 <!-- ========== Compare Table ========== -->
 <div class="compare-wrap">
   <h3>📋 策略一览对比表</h3>
@@ -825,26 +1086,44 @@ table.compare td .pill {
       </tr>
     </thead>
     <tbody>
-      <tr><td><b style="color:var(--green)">Long Call</b></td><td><span class="pill up">看涨</span></td><td><span class="pill up">做多</span></td><td>无限</td><td>权利金</td><td>+</td><td>+</td><td>−</td><td>强烈看涨、IV 低</td></tr>
-      <tr><td><b style="color:var(--red)">Short Call</b></td><td><span class="pill dn">中性偏空</span></td><td><span class="pill dn">做空</span></td><td>权利金</td><td>无限</td><td>−</td><td>−</td><td>+</td><td>备兑开仓、IV 高</td></tr>
-      <tr><td><b style="color:var(--blue)">Long Put</b></td><td><span class="pill dn">看跌</span></td><td><span class="pill up">做多</span></td><td>K−权利金</td><td>权利金</td><td>−</td><td>+</td><td>−</td><td>强烈看跌、对冲</td></tr>
-      <tr><td><b style="color:var(--yellow)">Short Put</b></td><td><span class="pill up">中性偏多</span></td><td><span class="pill dn">做空</span></td><td>权利金</td><td>K−权利金</td><td>+</td><td>−</td><td>+</td><td>低位接货、Wheel</td></tr>
-      <tr><td><b style="color:var(--green)">Bull Call Spread</b></td><td><span class="pill up">温和看涨</span></td><td><span class="pill flat">中性</span></td><td><span class="pill lim">有限</span></td><td><span class="pill lim">有限</span></td><td>+</td><td>~0</td><td>~0</td><td>压力位看涨</td></tr>
-      <tr><td><b style="color:var(--red)">Bear Put Spread</b></td><td><span class="pill dn">温和看跌</span></td><td><span class="pill flat">中性</span></td><td><span class="pill lim">有限</span></td><td><span class="pill lim">有限</span></td><td>−</td><td>~0</td><td>~0</td><td>支撑位看跌</td></tr>
-      <tr><td><b style="color:var(--blue)">Long Straddle</b></td><td><span class="pill flat">中性</span></td><td><span class="pill up">做多</span></td><td>无限</td><td>双倍权利金</td><td>~0</td><td>++</td><td>−−</td><td>事件、IV 低</td></tr>
-      <tr><td><b style="color:var(--yellow)">Short Straddle</b></td><td><span class="pill flat">中性</span></td><td><span class="pill dn">做空</span></td><td>双倍权利金</td><td>无限</td><td>~0</td><td>−−</td><td>++</td><td>横盘、IV 高</td></tr>
-      <tr><td><b style="color:var(--purple)">Iron Condor</b></td><td><span class="pill flat">中性</span></td><td><span class="pill dn">做空</span></td><td><span class="pill lim">有限</span></td><td><span class="pill lim">有限</span></td><td>~0</td><td>−</td><td>+</td><td>区间震荡 + IV 高</td></tr>
-      <tr><td><b style="color:var(--orange)">Butterfly</b></td><td><span class="pill flat">精准</span></td><td><span class="pill dn">做空</span></td><td><span class="pill lim">有限 (高比)</span></td><td><span class="pill lim">小成本</span></td><td>~0</td><td>−</td><td>+</td><td>精准点位 + 临近到期</td></tr>
+      <tr><td><a href="#long-call" class="strat-link"><b style="color:var(--green)">Long Call</b></a></td><td><span class="pill up">看涨</span></td><td><span class="pill up">做多</span></td><td>无限</td><td>权利金</td><td>+</td><td>+</td><td>−</td><td>强烈看涨、IV 低</td></tr>
+      <tr><td><a href="#short-call" class="strat-link"><b style="color:var(--red)">Short Call</b></a></td><td><span class="pill dn">中性偏空</span></td><td><span class="pill dn">做空</span></td><td>权利金</td><td>无限</td><td>−</td><td>−</td><td>+</td><td>备兑开仓、IV 高</td></tr>
+      <tr><td><a href="#long-put" class="strat-link"><b style="color:var(--blue)">Long Put</b></a></td><td><span class="pill dn">看跌</span></td><td><span class="pill up">做多</span></td><td>K−权利金</td><td>权利金</td><td>−</td><td>+</td><td>−</td><td>强烈看跌、对冲</td></tr>
+      <tr><td><a href="#short-put" class="strat-link"><b style="color:var(--yellow)">Short Put</b></a></td><td><span class="pill up">中性偏多</span></td><td><span class="pill dn">做空</span></td><td>权利金</td><td>K−权利金</td><td>+</td><td>−</td><td>+</td><td>低位接货、Wheel</td></tr>
+      <tr><td><a href="#bull-call-spread" class="strat-link"><b style="color:var(--green)">Bull Call Spread</b></a></td><td><span class="pill up">温和看涨</span></td><td><span class="pill flat">中性</span></td><td><span class="pill lim">有限</span></td><td><span class="pill lim">有限</span></td><td>+</td><td>~0</td><td>~0</td><td>压力位看涨</td></tr>
+      <tr><td><a href="#bear-put-spread" class="strat-link"><b style="color:var(--red)">Bear Put Spread</b></a></td><td><span class="pill dn">温和看跌</span></td><td><span class="pill flat">中性</span></td><td><span class="pill lim">有限</span></td><td><span class="pill lim">有限</span></td><td>−</td><td>~0</td><td>~0</td><td>支撑位看跌</td></tr>
+      <tr><td><a href="#long-straddle" class="strat-link"><b style="color:var(--blue)">Long Straddle</b></a></td><td><span class="pill flat">中性</span></td><td><span class="pill up">做多</span></td><td>无限</td><td>双倍权利金</td><td>~0</td><td>++</td><td>−−</td><td>事件、IV 低</td></tr>
+      <tr><td><a href="#short-straddle" class="strat-link"><b style="color:var(--yellow)">Short Straddle</b></a></td><td><span class="pill flat">中性</span></td><td><span class="pill dn">做空</span></td><td>双倍权利金</td><td>无限</td><td>~0</td><td>−−</td><td>++</td><td>横盘、IV 高</td></tr>
+      <tr><td><a href="#iron-condor" class="strat-link"><b style="color:var(--purple)">Iron Condor</b></a></td><td><span class="pill flat">中性</span></td><td><span class="pill dn">做空</span></td><td><span class="pill lim">有限</span></td><td><span class="pill lim">有限</span></td><td>~0</td><td>−</td><td>+</td><td>区间震荡 + IV 高</td></tr>
+      <tr><td><a href="#butterfly" class="strat-link"><b style="color:var(--orange)">Butterfly</b></a></td><td><span class="pill flat">精准</span></td><td><span class="pill dn">做空</span></td><td><span class="pill lim">有限 (高比)</span></td><td><span class="pill lim">小成本</span></td><td>~0</td><td>−</td><td>+</td><td>精准点位 + 临近到期</td></tr>
     </tbody>
   </table>
 </div>
 
 <div class="foot">
-  <b>📌 使用建议：</b>本指南是<b>静态文档</b>。要查看具体参数下的损益曲线和 Greeks 数值，请回到「单腿策略」（4 种基础策略 + Black-Scholes 定价）或「组合策略」（6 种组合的交互式损益分析）页面。<br>
+  <b>📌 阅读建议：</b>先按上方场景找匹配的策略，点击策略名称（带 ↗ 标记）跳转到下方详解卡片。需要详细参数和损益曲线，请打开「单腿策略」或「组合策略」页面互动调参。术语含义请参考<a href="options-glossary.html" style="color:var(--blue)">术语词典</a>。<br>
   <b>📌 风险提示：</b>所有策略的盈亏分析基于到期日 BS 模型理论价格，未考虑流动性折价、滑点、交易成本与早行权风险。实盘前请用小仓位验证。
 </div>
 
 </div>
+
+<script>
+// In-page anchor links: smooth scroll + flash highlight
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', (e) => {
+    const id = a.getAttribute('href').slice(1);
+    if (!id) return;
+    const target = document.getElementById(id);
+    if (!target) return;
+    e.preventDefault();
+    window.scrollTo({ top: target.offsetTop - 60, behavior: 'smooth' });
+    history.replaceState(null, '', '#' + id);
+    target.classList.remove('flash');
+    void target.offsetWidth;  // force reflow to restart animation
+    target.classList.add('flash');
+  });
+});
+</script>
 
 </body>
 </html>
