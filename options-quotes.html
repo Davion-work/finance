@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>期权实时行情 — Live Option Chain</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --text: #c9d1d9; --muted: #8b949e; --accent: #1f6feb;
+  --green: #3fb950; --red: #f85149; --blue: #58a6ff; --yellow: #d29922;
+  --purple: #bc8cff; --orange: #f0883e; --teal: #39c5cf;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+}
+
+.hdr {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 10px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.hdr h1 { font-size: 14px; font-weight: 600; color: #f0f6fc; }
+.tab-nav { display: flex; gap: 4px; margin-left: 20px; flex-wrap: wrap; }
+.tab-nav a {
+  padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  color: var(--muted); text-decoration: none; border: 1px solid transparent;
+  transition: all .15s; white-space: nowrap;
+}
+.tab-nav a:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.tab-nav a.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+.tag {
+  padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  background: rgba(63,185,80,.12); color: var(--green);
+  border: 1px solid rgba(63,185,80,.3);
+}
+
+/* Setup bar */
+.setup {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 20px; display: flex; align-items: center; gap: 16px;
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.input-group {
+  display: flex; align-items: center; gap: 8px;
+}
+.input-group label { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+input[type=text] {
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 6px 12px; border-radius: 6px; font-size: 13px; width: 130px;
+  font-family: inherit;
+}
+input[type=text]:focus { outline: none; border-color: var(--accent); }
+button {
+  background: var(--accent); color: #fff; border: none;
+  padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background .12s;
+}
+button:hover { background: #2080ff; }
+button:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+.examples {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; color: var(--muted); flex-wrap: wrap;
+}
+.examples a {
+  padding: 3px 9px; background: var(--bg); border: 1px solid var(--border);
+  color: var(--blue); border-radius: 4px; font-size: 11px; cursor: pointer;
+  transition: all .12s; text-decoration: none;
+}
+.examples a:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
+
+.spot-info {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 14px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; min-height: 36px;
+}
+.spot-info .sym { font-size: 14px; font-weight: 700; color: #f0f6fc; }
+.spot-info .name { font-size: 11px; color: var(--muted); }
+.spot-info .price { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.spot-info .change { font-size: 12px; font-variant-numeric: tabular-nums; padding: 2px 8px; border-radius: 4px; }
+.spot-info .change.up { color: var(--green); background: rgba(63,185,80,.12); }
+.spot-info .change.dn { color: var(--red); background: rgba(248,81,73,.12); }
+
+.status {
+  margin-left: auto; font-size: 11px; padding: 4px 10px; border-radius: 20px;
+}
+.status.ok { color: var(--green); background: rgba(63,185,80,.1); }
+.status.warn { color: var(--yellow); background: rgba(210,153,34,.1); }
+.status.err { color: var(--red); background: rgba(248,81,73,.1); }
+.status .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
+
+/* Setup guide (when server not connected) */
+.guide {
+  margin: 24px auto; max-width: 700px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px;
+}
+.guide h3 { font-size: 14px; color: #f0f6fc; margin-bottom: 12px; }
+.guide p { font-size: 12.5px; color: var(--text); line-height: 1.7; margin-bottom: 8px; }
+.guide ol { padding-left: 22px; margin-bottom: 10px; }
+.guide li { font-size: 12.5px; color: var(--text); line-height: 1.8; }
+.guide pre {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 12px 14px; font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 12px; color: var(--green); overflow-x: auto; margin: 8px 0;
+}
+.guide .note {
+  background: rgba(31,111,235,.06); border-left: 2px solid var(--accent);
+  padding: 8px 12px; border-radius: 4px; font-size: 11.5px;
+  color: var(--text); margin-top: 8px;
+}
+
+/* Layout */
+.layout { display: flex; flex: 1; overflow: hidden; }
+
+.sidebar {
+  width: 200px; flex-shrink: 0;
+  background: var(--surface); border-right: 1px solid var(--border);
+  padding: 14px 12px; overflow-y: auto;
+}
+.sec {
+  font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--muted); margin-bottom: 8px;
+}
+.exp-list { display: flex; flex-direction: column; gap: 3px; }
+.exp-item {
+  padding: 7px 10px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 5px; cursor: pointer; font-size: 12px; color: var(--text);
+  transition: all .12s; display: flex; justify-content: space-between; align-items: center;
+}
+.exp-item:hover { border-color: var(--muted); }
+.exp-item.active { border-color: var(--accent); background: rgba(31,111,235,.1); color: #fff; }
+.exp-item .dte {
+  font-size: 10px; color: var(--muted); padding: 1px 5px;
+  background: var(--surface2); border-radius: 3px;
+}
+.exp-item.active .dte { color: var(--blue); background: rgba(31,111,235,.15); }
+
+/* Main chain area */
+.main {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 14px 18px;
+}
+.chain-h {
+  display: flex; align-items: center; gap: 12px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.chain-h h3 { font-size: 13px; color: #f0f6fc; font-weight: 600; }
+.chain-h .meta { font-size: 11px; color: var(--muted); }
+.chain-h .refresh {
+  margin-left: auto; padding: 4px 10px; font-size: 11px;
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  border-radius: 4px; cursor: pointer; font-weight: 500;
+}
+.chain-h .refresh:hover { border-color: var(--accent); color: var(--blue); }
+
+.chain-wrap { flex: 1; overflow: auto; }
+
+table.chain {
+  width: 100%; border-collapse: collapse; font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+table.chain th {
+  background: var(--surface); position: sticky; top: 0; z-index: 5;
+  font-weight: 600; padding: 7px 8px; text-align: center;
+  font-size: 10px; color: var(--muted); border-bottom: 2px solid var(--border);
+  text-transform: uppercase; letter-spacing: .04em;
+}
+table.chain th.calls-h { background: rgba(63,185,80,.08); color: var(--green); }
+table.chain th.puts-h  { background: rgba(248,81,73,.08); color: var(--red); }
+table.chain th.strike-h { background: var(--surface2); color: var(--blue); }
+
+table.chain td {
+  padding: 5px 8px; border-bottom: 1px solid var(--border);
+  text-align: center; color: var(--text);
+}
+table.chain td.strike-c {
+  font-weight: 700; color: #f0f6fc; background: var(--surface2);
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+}
+table.chain tr:hover td { background: rgba(255,255,255,.02); }
+table.chain tr:hover td.strike-c { background: rgba(31,111,235,.1); }
+
+table.chain td.itm { background: rgba(63,185,80,.05); }
+table.chain td.atm-row { background: rgba(210,153,34,.08); }
+table.chain tr.atm td.strike-c {
+  background: rgba(210,153,34,.18);
+  color: var(--yellow);
+}
+
+table.chain .num-up { color: var(--green); }
+table.chain .num-dn { color: var(--red); }
+table.chain .num-mute { color: var(--muted); font-size: 10.5px; }
+
+/* Loader */
+.loader {
+  display: flex; align-items: center; justify-content: center;
+  height: 200px; color: var(--muted); font-size: 12px;
+}
+.loader::before {
+  content: ''; width: 14px; height: 14px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; margin-right: 10px;
+  animation: spin .9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; color: var(--muted); font-size: 13px; flex-direction: column; gap: 8px;
+}
+.empty .hint { font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>期权实时行情</h1>
+  <div class="tab-nav">
+    <a href="options-glossary.html">术语词典</a>
+    <a href="options-guide.html">策略指南</a>
+    <a href="options-payoff.html">单腿策略</a>
+    <a href="options-strategy.html">组合策略</a>
+    <a href="options-probability.html">概率计算器</a>
+    <a href="options-adjustments.html">调整决策</a>
+    <a href="options-playbook.html">场景 Playbook</a>
+    <a href="options-advanced.html">进阶策略</a>
+    <a href="options-quotes.html" class="active">实时行情</a>
+  </div>
+  <span class="tag">Yahoo Finance · Live Quotes</span>
+</div>
+
+<div class="setup">
+  <div class="input-group">
+    <label>代码</label>
+    <input type="text" id="symbol" value="AAPL" placeholder="如 AAPL / SPY" onkeydown="if(event.key==='Enter')search()">
+    <button id="searchBtn" onclick="search()">查询</button>
+  </div>
+  <div class="examples">
+    常用:
+    <a onclick="loadSymbol('AAPL')">AAPL</a>
+    <a onclick="loadSymbol('NVDA')">NVDA</a>
+    <a onclick="loadSymbol('MSFT')">MSFT</a>
+    <a onclick="loadSymbol('TSLA')">TSLA</a>
+    <a onclick="loadSymbol('SPY')">SPY</a>
+    <a onclick="loadSymbol('QQQ')">QQQ</a>
+    <a onclick="loadSymbol('META')">META</a>
+    <a onclick="loadSymbol('GOOGL')">GOOGL</a>
+  </div>
+  <div class="spot-info" id="spotInfo">
+    <span class="sym">—</span>
+    <span class="price">—</span>
+    <span class="change">—</span>
+  </div>
+  <div class="status" id="status">
+    <span class="dot"></span>检查后端...
+  </div>
+</div>
+
+<div class="layout" id="mainLayout" style="display:none">
+  <aside class="sidebar">
+    <div class="sec">到期日 / DTE</div>
+    <div class="exp-list" id="expList">
+      <div class="empty"><div>请先输入代码并查询</div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="chain-h">
+      <h3 id="chainTitle">期权链</h3>
+      <span class="meta" id="chainMeta"></span>
+      <button class="refresh" onclick="refreshChain()" id="refreshBtn" style="display:none">🔄 刷新</button>
+    </div>
+    <div class="chain-wrap" id="chainWrap">
+      <div class="empty"><div>选择左侧到期日查看期权链</div></div>
+    </div>
+  </main>
+</div>
+
+<div id="guideContainer"></div>
+
+<script>
+const API = 'http://localhost:5000/api';
+const eid = id => document.getElementById(id);
+
+let currentSymbol = null;
+let currentDate = null;
+let serverOk = false;
+
+// ========== 状态显示 ==========
+function setStatus(text, level) {
+  const el = eid('status');
+  el.className = 'status ' + (level || 'ok');
+  el.innerHTML = `<span class="dot" style="background:${level==='ok'?'var(--green)':level==='warn'?'var(--yellow)':'var(--red)'}"></span>${text}`;
+}
+
+function showGuide() {
+  eid('mainLayout').style.display = 'none';
+  eid('guideContainer').innerHTML = `
+    <div class="guide">
+      <h3>📡 启动后端服务器</h3>
+      <p>实时行情需要本地运行一个 Python 后端从 Yahoo Finance 抓取数据。请按以下步骤操作：</p>
+      <ol>
+        <li><b>安装依赖</b>（首次使用）：
+          <pre>pip install flask flask-cors yfinance</pre>
+        </li>
+        <li><b>启动服务器</b>：在 <code>finance</code> 目录下运行
+          <pre>python quotes_server.py</pre>
+          看到 "服务地址: http://localhost:5000" 即启动成功。
+        </li>
+        <li><b>刷新本页</b>，自动连接后端。</li>
+      </ol>
+      <div class="note">
+        <b>📌 国内访问 Yahoo Finance：</b>需要科学上网。如无法访问，可以改用 AKShare 查询 A 股 50ETF / 300ETF 期权（修改 quotes_server.py 即可）。
+      </div>
+      <div class="note" style="background:rgba(248,81,73,.06);border-left-color:var(--red);margin-top:6px">
+        <b>⚠️ 安全提示：</b>quotes_server.py 仅监听本地 127.0.0.1，不暴露公网。请勿用 0.0.0.0 启动。
+      </div>
+    </div>
+  `;
+}
+
+// ========== 健康检查 ==========
+async function checkHealth() {
+  try {
+    const r = await fetch(API + '/health', { signal: AbortSignal.timeout(2500) });
+    if (!r.ok) throw new Error('后端响应异常');
+    const data = await r.json();
+    if (!data.yfinance) {
+      setStatus('yfinance 未安装', 'warn');
+      return false;
+    }
+    setStatus('后端已连接', 'ok');
+    return true;
+  } catch (e) {
+    setStatus('后端未启动', 'err');
+    return false;
+  }
+}
+
+// ========== 查询主流程 ==========
+async function search() {
+  const sym = eid('symbol').value.trim().toUpperCase();
+  if (!sym) return;
+  if (!serverOk) {
+    showGuide();
+    return;
+  }
+
+  currentSymbol = sym;
+  eid('searchBtn').disabled = true;
+
+  try {
+    // 并行获取现价 + 到期日
+    const [spotRes, expRes] = await Promise.all([
+      fetch(`${API}/spot?symbol=${sym}`).then(r => r.json()),
+      fetch(`${API}/expirations?symbol=${sym}`).then(r => r.json()),
+    ]);
+
+    if (spotRes.error) {
+      setStatus(spotRes.error, 'err');
+      return;
+    }
+    renderSpot(spotRes);
+
+    if (expRes.error) {
+      eid('expList').innerHTML = `<div class="empty"><div>${expRes.error}</div></div>`;
+      eid('chainWrap').innerHTML = `<div class="empty"><div>—</div></div>`;
+      return;
+    }
+    renderExpirations(expRes.dates);
+
+    // 自动加载第一个到期日
+    if (expRes.dates.length) {
+      loadChain(sym, expRes.dates[0]);
+    }
+  } catch (e) {
+    setStatus('查询失败: ' + e.message, 'err');
+  } finally {
+    eid('searchBtn').disabled = false;
+  }
+}
+
+function loadSymbol(sym) {
+  eid('symbol').value = sym;
+  search();
+}
+
+// ========== Render: 现价 ==========
+function renderSpot(d) {
+  const el = eid('spotInfo');
+  const upDn = d.change >= 0 ? 'up' : 'dn';
+  const sign = d.change >= 0 ? '+' : '';
+  el.innerHTML = `
+    <span class="sym">${d.symbol}</span>
+    <span class="name">${d.name && d.name !== d.symbol ? d.name : ''}</span>
+    <span class="price">${d.currency==='USD'?'$':''}${d.price.toFixed(2)}</span>
+    <span class="change ${upDn}">${sign}${d.change.toFixed(2)} (${sign}${d.changePct.toFixed(2)}%)</span>
+  `;
+}
+
+// ========== Render: 到期日列表 ==========
+function renderExpirations(dates) {
+  const today = new Date();
+  const list = eid('expList');
+  list.innerHTML = dates.map((d, i) => {
+    const exp = new Date(d);
+    const dte = Math.max(0, Math.round((exp - today) / 86400000));
+    const dteColor = dte <= 7 ? 'var(--orange)' : dte <= 30 ? 'var(--yellow)' : 'var(--muted)';
+    return `<div class="exp-item ${i===0?'active':''}" data-date="${d}" onclick="selectDate('${d}', this)">
+      <span>${d}</span>
+      <span class="dte" style="color:${dteColor}">${dte}天</span>
+    </div>`;
+  }).join('');
+}
+
+function selectDate(date, el) {
+  document.querySelectorAll('.exp-item').forEach(e => e.classList.remove('active'));
+  if (el) el.classList.add('active');
+  loadChain(currentSymbol, date);
+}
+
+// ========== Render: 期权链 ==========
+async function loadChain(symbol, date) {
+  currentDate = date;
+  eid('mainLayout').style.display = 'flex';
+  eid('guideContainer').innerHTML = '';
+  eid('chainTitle').textContent = `${symbol} · ${date}`;
+  eid('chainMeta').textContent = '加载中...';
+  eid('chainWrap').innerHTML = '<div class="loader">加载期权链中...</div>';
+  eid('refreshBtn').style.display = 'none';
+
+  try {
+    const r = await fetch(`${API}/chain?symbol=${symbol}&date=${date}`);
+    const data = await r.json();
+    if (data.error) {
+      eid('chainWrap').innerHTML = `<div class="empty"><div>${data.error}</div></div>`;
+      eid('chainMeta').textContent = '';
+      return;
+    }
+    renderChain(data);
+    eid('refreshBtn').style.display = 'inline-block';
+    const today = new Date();
+    const dte = Math.round((new Date(date) - today) / 86400000);
+    eid('chainMeta').textContent = `现价 ${data.spot ? '$'+data.spot.toFixed(2) : '—'} · DTE ${dte} 天 · ${data.calls.length} 个行权价`;
+  } catch (e) {
+    eid('chainWrap').innerHTML = `<div class="empty"><div>加载失败: ${e.message}</div></div>`;
+  }
+}
+
+function refreshChain() {
+  if (currentSymbol && currentDate) loadChain(currentSymbol, currentDate);
+}
+
+function renderChain(data) {
+  const { calls, puts, spot } = data;
+
+  // 按 strike 合并
+  const strikeMap = new Map();
+  calls.forEach(c => {
+    if (!strikeMap.has(c.strike)) strikeMap.set(c.strike, { strike: c.strike });
+    strikeMap.get(c.strike).call = c;
+  });
+  puts.forEach(p => {
+    if (!strikeMap.has(p.strike)) strikeMap.set(p.strike, { strike: p.strike });
+    strikeMap.get(p.strike).put = p;
+  });
+  const rows = Array.from(strikeMap.values()).sort((a, b) => a.strike - b.strike);
+
+  // 找最接近 spot 的 strike (ATM)
+  let atmIdx = -1;
+  if (spot) {
+    let minDist = Infinity;
+    rows.forEach((r, i) => {
+      const d = Math.abs(r.strike - spot);
+      if (d < minDist) { minDist = d; atmIdx = i; }
+    });
+  }
+
+  const fmt = (v, dp=2) => v == null || v === 0 ? '<span class="num-mute">—</span>' : v.toFixed(dp);
+  const fmtIV = v => v == null || v === 0 ? '<span class="num-mute">—</span>' : (v*100).toFixed(1)+'%';
+  const fmtInt = v => v == null || v === 0 ? '<span class="num-mute">0</span>' : v.toLocaleString();
+
+  const html = `
+  <table class="chain">
+    <thead>
+      <tr>
+        <th colspan="6" class="calls-h">CALLS · 看涨</th>
+        <th class="strike-h">行权价</th>
+        <th colspan="6" class="puts-h">PUTS · 看跌</th>
+      </tr>
+      <tr>
+        <th>OI</th><th>Vol</th><th>IV</th><th>Bid</th><th>Last</th><th>Ask</th>
+        <th class="strike-h">Strike</th>
+        <th>Bid</th><th>Last</th><th>Ask</th><th>IV</th><th>Vol</th><th>OI</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map((r, i) => {
+        const c = r.call || {};
+        const p = r.put || {};
+        const isATM = i === atmIdx;
+        // ITM: Call 当 strike < spot；Put 当 strike > spot
+        const callITM = spot && r.strike < spot;
+        const putITM  = spot && r.strike > spot;
+        const callCls = callITM ? 'itm' : '';
+        const putCls  = putITM ? 'itm' : '';
+        return `
+        <tr class="${isATM?'atm':''}">
+          <td class="${callCls}">${fmtInt(c.openInterest)}</td>
+          <td class="${callCls}">${fmtInt(c.volume)}</td>
+          <td class="${callCls}">${fmtIV(c.impliedVolatility)}</td>
+          <td class="${callCls}">${fmt(c.bid)}</td>
+          <td class="${callCls}"><b>${fmt(c.lastPrice)}</b></td>
+          <td class="${callCls}">${fmt(c.ask)}</td>
+          <td class="strike-c">${r.strike.toFixed(1)}</td>
+          <td class="${putCls}">${fmt(p.bid)}</td>
+          <td class="${putCls}"><b>${fmt(p.lastPrice)}</b></td>
+          <td class="${putCls}">${fmt(p.ask)}</td>
+          <td class="${putCls}">${fmtIV(p.impliedVolatility)}</td>
+          <td class="${putCls}">${fmtInt(p.volume)}</td>
+          <td class="${putCls}">${fmtInt(p.openInterest)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+
+  eid('chainWrap').innerHTML = html;
+
+  // ATM 行滚动到中间
+  if (atmIdx >= 0) {
+    setTimeout(() => {
+      const atmRow = eid('chainWrap').querySelector('tr.atm');
+      if (atmRow) atmRow.scrollIntoView({ block: 'center' });
+    }, 50);
+  }
+}
+
+// ========== 初始化 ==========
+(async () => {
+  serverOk = await checkHealth();
+  if (serverOk) {
+    eid('mainLayout').style.display = 'flex';
+    // 默认加载 AAPL
+    setTimeout(() => search(), 100);
+  } else {
+    showGuide();
+  }
+})();
+</script>
+
+</body>
+</html>

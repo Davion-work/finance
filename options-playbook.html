@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>期权场景 Playbook — 操作手册</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --text: #c9d1d9; --muted: #8b949e; --accent: #1f6feb;
+  --green: #3fb950; --red: #f85149; --blue: #58a6ff; --yellow: #d29922;
+  --purple: #bc8cff; --orange: #f0883e; --teal: #39c5cf;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px; min-height: 100vh;
+}
+
+.hdr {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 30; flex-wrap: wrap;
+}
+.hdr h1 { font-size: 14px; font-weight: 600; color: #f0f6fc; }
+.tab-nav { display: flex; gap: 4px; margin-left: 20px; flex-wrap: wrap; }
+.tab-nav a {
+  padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  color: var(--muted); text-decoration: none; border: 1px solid transparent;
+  transition: all .15s; white-space: nowrap;
+}
+.tab-nav a:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.tab-nav a.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+.tag {
+  padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  background: rgba(57,197,207,.12); color: var(--teal);
+  border: 1px solid rgba(57,197,207,.3);
+}
+
+.layout { display: flex; max-width: 1400px; margin: 0 auto; align-items: flex-start; }
+.toc {
+  width: 220px; flex-shrink: 0; padding: 24px 14px 24px 20px;
+  position: sticky; top: 49px; max-height: calc(100vh - 49px);
+  overflow-y: auto; align-self: flex-start;
+}
+.toc h3 {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--muted);
+  margin: 14px 0 6px; padding-left: 4px;
+}
+.toc h3:first-child { margin-top: 0; }
+.toc a {
+  display: block; padding: 5px 9px; margin-bottom: 1px;
+  font-size: 11.5px; color: var(--muted); text-decoration: none;
+  border-radius: 4px; border-left: 2px solid transparent; transition: all .12s;
+}
+.toc a:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.toc a.active { color: #f0f6fc; background: rgba(31,111,235,.08); border-left-color: var(--accent); }
+
+.content { flex: 1; min-width: 0; padding: 24px 24px 60px; }
+
+.intro {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 20px; margin-bottom: 28px; line-height: 1.7;
+}
+.intro h2 { font-size: 15px; color: #f0f6fc; margin-bottom: 8px; }
+.intro p { color: var(--muted); font-size: 12.5px; }
+.intro b { color: var(--text); }
+
+/* Playbook section */
+.pb {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 10px;
+  padding: 18px 20px; margin-bottom: 18px;
+  scroll-margin-top: 60px;
+}
+.pb-h {
+  display: flex; align-items: center; gap: 12px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.pb-h .icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.pb-h h2 { font-size: 16px; color: #f0f6fc; font-weight: 600; }
+.pb-h .sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+.subh {
+  font-size: 12px; color: var(--accent); font-weight: 600;
+  margin: 14px 0 6px;
+  padding: 4px 10px;
+  background: rgba(31,111,235,.06);
+  border-left: 2px solid var(--accent);
+  border-radius: 3px;
+}
+.subh:first-child { margin-top: 0; }
+
+.pb p { font-size: 12px; line-height: 1.75; color: var(--text); margin-bottom: 8px; }
+.pb p b { color: #f0f6fc; }
+.pb p i { color: var(--yellow); font-style: normal; }
+
+.pb ul { padding-left: 18px; margin: 6px 0 10px; }
+.pb li { font-size: 11.5px; line-height: 1.75; color: var(--text); margin-bottom: 4px; }
+.pb li b { color: #f0f6fc; }
+.pb li code {
+  background: var(--bg); padding: 1px 5px; border-radius: 3px;
+  font-family: 'Cascadia Code', Consolas, monospace; font-size: 11px;
+  color: var(--green);
+}
+
+/* Step list */
+.steps { display: flex; flex-direction: column; gap: 6px; }
+.step {
+  display: flex; gap: 10px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 9px 12px;
+  font-size: 11.5px; line-height: 1.65;
+}
+.step .num {
+  flex-shrink: 0; width: 22px; height: 22px;
+  background: var(--accent); color: #fff;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+.step .body { flex: 1; }
+.step .body b { color: #f0f6fc; }
+.step .body code {
+  background: var(--surface2); padding: 1px 5px; border-radius: 3px;
+  font-family: 'Cascadia Code', Consolas, monospace; font-size: 11px;
+  color: var(--green);
+}
+
+/* Tables */
+.t {
+  width: 100%; border-collapse: collapse; font-size: 11.5px;
+  background: var(--bg); border-radius: 6px; overflow: hidden;
+  margin: 6px 0 12px;
+}
+.t th, .t td {
+  padding: 7px 10px; border: 1px solid var(--border); text-align: left;
+}
+.t th {
+  background: var(--surface2); color: var(--muted); font-weight: 600;
+  font-size: 10px; text-transform: uppercase;
+}
+.t td { color: var(--text); line-height: 1.55; }
+.t td b { color: #f0f6fc; }
+
+/* Boxes */
+.box {
+  font-size: 11.5px; line-height: 1.65; padding: 9px 12px; border-radius: 5px;
+  margin: 6px 0;
+}
+.box.tip  { background: rgba(63,185,80,.08); border-left: 2px solid var(--green); }
+.box.warn { background: rgba(248,81,73,.08); border-left: 2px solid var(--red); }
+.box.info { background: rgba(31,111,235,.08); border-left: 2px solid var(--accent); }
+.box b { color: #f0f6fc; }
+
+.example {
+  background: var(--surface2); border: 1px dashed var(--border);
+  border-radius: 6px; padding: 11px 13px; margin: 8px 0 12px;
+}
+.example .label {
+  font-size: 10px; color: var(--blue); font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px;
+}
+.example p { font-size: 11.5px; line-height: 1.7; margin-bottom: 6px; }
+.example .num { color: var(--yellow); font-weight: 600; }
+
+.foot {
+  margin-top: 32px; padding: 14px 16px;
+  background: var(--surface2); border: 1px dashed var(--border); border-radius: 8px;
+  font-size: 11.5px; color: var(--muted); line-height: 1.7;
+}
+.foot b { color: var(--text); }
+
+@keyframes flash {
+  0% { box-shadow: 0 0 0 0 rgba(31,111,235,.7); }
+  20% { box-shadow: 0 0 0 3px rgba(31,111,235,.7); }
+  100% { box-shadow: 0 0 0 0 rgba(31,111,235,0); }
+}
+.flash { animation: flash 1.4s ease; }
+
+@media (max-width: 880px) {
+  .toc { display: none; }
+  .content { padding: 18px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>期权场景 Playbook</h1>
+  <div class="tab-nav">
+    <a href="options-glossary.html">术语词典</a>
+    <a href="options-guide.html">策略指南</a>
+    <a href="options-payoff.html">单腿策略</a>
+    <a href="options-strategy.html">组合策略</a>
+    <a href="options-probability.html">概率计算器</a>
+    <a href="options-adjustments.html">调整决策</a>
+    <a href="options-playbook.html" class="active">场景 Playbook</a>
+    <a href="options-advanced.html">进阶策略</a>
+    <a href="options-quotes.html">实时行情</a>
+  </div>
+  <span class="tag">操作手册 · 入场 / 仓位 / 退出 / 调整</span>
+</div>
+
+<div class="layout">
+
+  <nav class="toc" id="toc">
+    <h3>实战 Playbook</h3>
+    <a href="#earnings">📊 财报玩法</a>
+    <a href="#zero-dte">⚡ 0DTE 当日</a>
+    <a href="#monthly">📅 月度系统化卖方</a>
+    <a href="#wheel">🔄 Wheel 策略</a>
+    <a href="#leaps">📈 LEAPS 长期投资</a>
+    <h3>支撑工具</h3>
+    <a href="#sizing">💰 仓位管理</a>
+    <a href="#mistakes">⚠️ 常见陷阱</a>
+  </nav>
+
+  <main class="content">
+
+  <div class="intro">
+    <h2>关于本手册</h2>
+    <p>策略指南教你<b>选哪个策略</b>，本手册教你<b>怎么具体操作</b>——每种场景下的入场规则、仓位大小、调整与退出的具体数值化标准。这是把"知道"转化为"做到"的桥梁。每个 Playbook 都包含<b>真实示例</b>与<b>常见陷阱</b>。</p>
+  </div>
+
+  <!-- ============ 1. 财报 Playbook ============ -->
+  <div class="pb" id="earnings" style="border-left-color:var(--purple)">
+    <div class="pb-h">
+      <div class="icon" style="background:rgba(188,140,255,.18)">📊</div>
+      <div>
+        <h2>财报 Playbook · Earnings Plays</h2>
+        <div class="sub">事件驱动交易最经典也最危险的场景</div>
+      </div>
+    </div>
+
+    <div class="subh">▸ 核心矛盾</div>
+    <p>财报前 IV 显著推高（通常达历史 80-95% 分位），财报揭晓后 24 小时内 IV 暴跌到正常水平（<b>Vol Crush</b>）。即使方向看对，如果只买 Long Call/Put，<b>40% 的概率会因 Vol Crush 反而亏损</b>。</p>
+
+    <div class="subh">▸ 三种主流玩法</div>
+    <table class="t">
+      <thead>
+        <tr><th>玩法</th><th>方向观点</th><th>策略</th><th>盈利来源</th><th>风险</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>买方做波动率</b></td><td>不押方向，押幅度</td><td>Long Straddle / Strangle</td><td>实际波动 &gt; 期权隐含波动</td><td>Vol Crush 后亏损</td></tr>
+        <tr><td><b>卖方收溢价</b></td><td>不押方向，押 Crush</td><td>Iron Condor / Iron Butterfly</td><td>财报后 IV 回归 + Theta</td><td>财报爆雷突破区间</td></tr>
+        <tr><td><b>方向 + 价差</b></td><td>有强方向预判</td><td>Bull Call / Bear Put Spread</td><td>方向对 + IV 不影响</td><td>方向看错全损</td></tr>
+      </tbody>
+    </table>
+
+    <div class="subh">▸ 入场规则（以卖方为例）</div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><div class="body"><b>选标的：</b>大市值 + 流动性好（Apple, NVDA, META, AMZN）。<b>避开</b>小盘股（IV 跳空风险大）和生物医药（FDA 黑天鹅）。</div></div>
+      <div class="step"><div class="num">2</div><div class="body"><b>看 IV Rank：</b>财报前 1 天 IV Rank 应 ≥ <code>70</code>（说明 IV 已被市场推高）。如 IV Rank &lt; 50，不值得做 Crush 玩法。</div></div>
+      <div class="step"><div class="num">3</div><div class="body"><b>计算预期移动 (Expected Move)：</b>用 ATM Straddle 价格 ÷ 标的现价 ≈ 财报后预期波动 %。如 EM = ±5%，Iron Condor 的翼布在 ±1.5×EM 之外。</div></div>
+      <div class="step"><div class="num">4</div><div class="body"><b>建仓时机：</b><i>财报披露当天收盘前 30 分钟</i>。提前太多 IV 还没拉到顶，太晚错过 Crush 高点。</div></div>
+      <div class="step"><div class="num">5</div><div class="body"><b>选 Δ：</b>翼 Δ ≈ <code>16</code>（约 1σ 外）。短腿 Δ &lt; 0.20。</div></div>
+    </div>
+
+    <div class="subh">▸ 退出规则</div>
+    <ul>
+      <li><b>财报次日开盘：</b>立即平仓。不论盈亏，<b>Vol Crush 当天就完成 80%</b>，再持有只是赌博。</li>
+      <li><b>提前止盈：</b>盈利达到净收入的 <code>50%</code> 即平仓。</li>
+      <li><b>止损：</b>亏损达到 <code>2 倍净收入</code> 必须止损。</li>
+    </ul>
+
+    <div class="example">
+      <div class="label">📚 示例 — NVDA 财报卖方</div>
+      <p>NVDA 现价 $500，财报前 IV Rank=85%，ATM Straddle 价 $40 → 预期移动 ±8%。</p>
+      <p><b>建仓：</b>当天收盘前 30 分钟，建 Iron Condor：Buy 440P / Sell 460P / Sell 540C / Buy 560C，DTE 7 天。<span class="num">净收 $4.20</span></p>
+      <p><b>财报次日：</b>NVDA 开盘 $510（仅涨 2%），IV 暴跌至 30%。整个 IC 价值缩到 $1.50，<span class="num">浮盈 $2.70（64%）</span>。</p>
+      <p><b>动作：</b>立即平仓，锁定盈利。</p>
+    </div>
+
+    <div class="box warn"><b>⚠️ 经典陷阱：</b><br>
+    1. <b>财报前两周建仓</b>：太早，IV 还在爬升，建仓即陷入 Vega 不利。<br>
+    2. <b>财报后才入场</b>：IV 已 Crush，权利金薄如蝉翼，没意义。<br>
+    3. <b>赌方向 + Long Call</b>：标的涨 3% 但 IV 砍半，Long Call 仍亏 30%。这是新手最常踩的坑。
+    </div>
+  </div>
+
+  <!-- ============ 2. 0DTE Playbook ============ -->
+  <div class="pb" id="zero-dte" style="border-left-color:var(--orange)">
+    <div class="pb-h">
+      <div class="icon" style="background:rgba(240,136,62,.18)">⚡</div>
+      <div>
+        <h2>0DTE · 当日到期玩法</h2>
+        <div class="sub">最快的 Theta · 最大的 Gamma 风险</div>
+      </div>
+    </div>
+
+    <div class="subh">▸ 什么是 0DTE</div>
+    <p>"Zero Days To Expiration"——当天到期的期权。SPX 现在每周一三五都有到期，SPY 每周一二三四五都有，使 0DTE 成为常规交易品种。<b>Theta 在最后一天衰减最猛</b>（占总价值的 30-50%），同时 <b>Gamma 也急剧放大</b>，是双刃剑。</p>
+
+    <div class="subh">▸ 主流玩法分类</div>
+    <table class="t">
+      <thead>
+        <tr><th>玩法</th><th>策略</th><th>胜率</th><th>盈亏比</th><th>适合谁</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>Iron Condor 卖方</b></td><td>开盘建 IC，收 Theta 到收盘</td><td>~70%</td><td>1:3</td><td>有纪律的系统化玩家</td></tr>
+        <tr><td><b>Credit Spread 单边</b></td><td>判断盘中方向卖反向价差</td><td>~65%</td><td>1:2</td><td>有日内方向感的玩家</td></tr>
+        <tr><td><b>Long Butterfly</b></td><td>赌收盘价精确落点</td><td>~30%</td><td>5:1</td><td>有点位预判的玩家</td></tr>
+        <tr><td><b>Long OTM 抓爆发</b></td><td>买远 OTM 等突发新闻</td><td>~5%</td><td>50:1</td><td>赌徒（劝退）</td></tr>
+      </tbody>
+    </table>
+
+    <div class="subh">▸ Iron Condor 0DTE 操作流程</div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><div class="body"><b>建仓时间：</b>美东时间 9:45-10:00（开盘后 15-30 分钟，等开盘冲击消化）</div></div>
+      <div class="step"><div class="num">2</div><div class="body"><b>翼宽选择：</b>Short 腿 Δ ≈ <code>15-20</code>，Long 腿 Δ ≈ <code>5-10</code>，翼宽 5 元</div></div>
+      <div class="step"><div class="num">3</div><div class="body"><b>仓位大小：</b>单笔最大亏损不超过日度风险预算（<b>总资金的 0.5%</b>，0DTE 比月度 IC 风险更高）</div></div>
+      <div class="step"><div class="num">4</div><div class="body"><b>盈利退出：</b>盈利达到 <code>25%</code> 净收入即平仓（0DTE 的 50% 法则改成 25%，因为时间有限）</div></div>
+      <div class="step"><div class="num">5</div><div class="body"><b>止损：</b>亏损达到 <code>100%</code> 净收入立即止损（0DTE Gamma 风险大，犹豫 10 分钟可能多亏一倍）</div></div>
+      <div class="step"><div class="num">6</div><div class="body"><b>平仓时间：</b>最迟收盘前 30 分钟全部平仓，避免最后冲击与 Pin Risk</div></div>
+    </div>
+
+    <div class="box warn"><b>⚠️ 0DTE 三大杀手：</b><br>
+    1. <b>突发消息</b>（联储意外讲话、地缘新闻）：标的瞬间穿透 Short 腿，最大亏损<br>
+    2. <b>过度交易</b>：日内 Gamma 心理压力大，可能一天进出 5 次反而亏损<br>
+    3. <b>仓位过大</b>：0DTE 看似"小钱博大钱"，但满仓一次黑天鹅就归零
+    </div>
+  </div>
+
+  <!-- ============ 3. 月度系统化卖方 ============ -->
+  <div class="pb" id="monthly" style="border-left-color:var(--green)">
+    <div class="pb-h">
+      <div class="icon" style="background:rgba(63,185,80,.18)">📅</div>
+      <div>
+        <h2>月度系统化卖方 · 45 DTE Iron Condor</h2>
+        <div class="sub">机构最常用的稳健现金流策略</div>
+      </div>
+    </div>
+
+    <div class="subh">▸ 核心理念</div>
+    <p>不押方向、不押事件，<b>系统化</b>每月在 IV 偏高的标的上卖 Iron Condor，靠"波动率风险溢价"（IV &gt; 实际 HV）赚取稳定权利金。机构（如 Tastyworks、Tom Sosnoff）的旗舰策略。<b>胜率 70%+，年化 15-25%</b>。</p>
+
+    <div class="subh">▸ 标的选择</div>
+    <ul>
+      <li><b>流动性</b>：日均期权成交 &gt; 5000 张，Bid-Ask Spread &lt; 1%</li>
+      <li><b>IV Rank</b>：≥ <code>30</code>（30 是甜区，太低没赚头，太高有方向风险）</li>
+      <li><b>典型标的</b>：SPY, QQQ, IWM（指数 ETF），SPX（指数）；个股：AAPL, MSFT, NVDA</li>
+      <li><b>避开</b>：财报临近（≤ 14 天）的个股、生物医药、并购传闻标的</li>
+    </ul>
+
+    <div class="subh">▸ 入场参数（Tastyworks 经典）</div>
+    <table class="t">
+      <thead>
+        <tr><th>参数</th><th>值</th><th>原因</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>DTE</b></td><td>45 天</td><td>Theta 加速期最佳起点</td></tr>
+        <tr><td><b>Short 腿 Δ</b></td><td>16 (1σ 外)</td><td>~84% 概率到期作废</td></tr>
+        <tr><td><b>Long 腿 Δ</b></td><td>5 (远 OTM)</td><td>翼宽 5-10 元，便宜的保险</td></tr>
+        <tr><td><b>Premium 收入</b></td><td>翼宽的 30-40%</td><td>低于此说明 IV 太低，不值得做</td></tr>
+        <tr><td><b>仓位大小</b></td><td>单笔最大亏损 ≤ 总资金 1-2%</td><td>10 笔同时持有时也不会爆仓</td></tr>
+      </tbody>
+    </table>
+
+    <div class="subh">▸ 管理规则</div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><div class="body"><b>盈利 50% 即平仓</b>（"50% Profit Take"）— 最重要的规则。剩余 50% 利润不值得继续持仓的尾部风险</div></div>
+      <div class="step"><div class="num">2</div><div class="body"><b>21 DTE 必动</b>—— 持仓到只剩 21 天时，要么 Roll 到下个月，要么平仓。Gamma 进入危险区</div></div>
+      <div class="step"><div class="num">3</div><div class="body"><b>受威胁时 Roll</b> — Short 腿 Δ &gt; 30 时，Roll 受威胁的一侧到下月 + 调整 K</div></div>
+      <div class="step"><div class="num">4</div><div class="body"><b>止损线</b> — 亏损达到 <code>2 倍净收入</code> 必须止损（即使盈利 70%+ 的策略也有 30% 的亏损单）</div></div>
+    </div>
+
+    <div class="example">
+      <div class="label">📚 示例 — SPY 月度 IC</div>
+      <p>SPY=450，IV Rank=42。45 DTE 选 Δ=16 的 Short 腿：</p>
+      <p><b>构造：</b>Buy 415P / Sell 425P / Sell 475C / Buy 485C → <span class="num">净收 $3.20</span>，最大亏损 $6.80</p>
+      <p><b>21 天后：</b>SPY=455（中央偏上），权利金已贬值到 $1.50 → 浮盈 $1.70（53%）</p>
+      <p><b>动作：</b>触发 50% 平仓规则，结清。<span class="num">月度收益 ~5%</span></p>
+    </div>
+
+    <div class="box tip"><b>💡 为什么这个策略能长期赢：</b><br>
+    波动率风险溢价是真实存在的——市场愿意为"保险"多付钱。研究显示 SPX 期权 IV 长期高于实际 HV 约 4 个百分点。Iron Condor 是收割这个溢价的最直接方式。
+    </div>
+  </div>
+
+  <!-- ============ 4. Wheel ============ -->
+  <div class="pb" id="wheel" style="border-left-color:var(--blue)">
+    <div class="pb-h">
+      <div class="icon" style="background:rgba(88,166,255,.18)">🔄</div>
+      <div>
+        <h2>Wheel 策略 · 轮动收割</h2>
+        <div class="sub">"长期看好就反复卖期权"的现金流神器</div>
+      </div>
+    </div>
+
+    <div class="subh">▸ 三步循环</div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><div class="body"><b>Step 1 - Cash-Secured Put：</b>选你<b>愿意持有</b>的标的，在愿意接货的价位卖 OTM Put，收权利金。冻结现金 = K × 100。</div></div>
+      <div class="step"><div class="num">2</div><div class="body"><b>Step 2 - 接货：</b>如果 Put 被指派（标的跌破 K），用冻结现金以 K 价接 100 股正股。<b>实际成本 = K - 已收权利金</b>，相当于打折买入。</div></div>
+      <div class="step"><div class="num">3</div><div class="body"><b>Step 3 - Covered Call：</b>持有正股期间，每月卖 OTM Call 收权利金。如果 Call 被行权（标的涨破 K_call），交付正股并收回现金，<b>回到 Step 1</b>。</div></div>
+    </div>
+
+    <div class="subh">▸ 标的筛选（关键）</div>
+    <ul>
+      <li><b>必须满足：</b>真心想长期持有的标的（一旦被指派，可能套牢数月）</li>
+      <li><b>避开：</b>有破产风险的公司、生物医药、加密货币相关股</li>
+      <li><b>典型选择：</b>大市值蓝筹（AAPL, MSFT, GOOGL）、ETF（SPY, QQQ）</li>
+      <li><b>避开误区：</b>"Wheel 高 IV 标的赚得多"——高 IV 通常对应高破产风险，得不偿失</li>
+    </ul>
+
+    <div class="subh">▸ 操作参数</div>
+    <table class="t">
+      <thead>
+        <tr><th>步骤</th><th>Δ 选择</th><th>DTE</th><th>退出</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>CSP</td><td>Δ ≈ 0.20-0.30</td><td>30-45 天</td><td>盈利 50% 平仓</td></tr>
+        <tr><td>Covered Call</td><td>Δ ≈ 0.20-0.30</td><td>30-45 天</td><td>盈利 50% 平仓</td></tr>
+      </tbody>
+    </table>
+
+    <div class="example">
+      <div class="label">📚 示例 — AAPL Wheel</div>
+      <p><b>Round 1 (CSP)：</b>AAPL=180，卖 30 DTE Put @170，收 $2.50。</p>
+      <p>30 天后 AAPL=175 ✓ Put 作废，<span class="num">赚 $250</span>，启动下一轮。</p>
+      <p><b>Round 2 (CSP)：</b>卖 30 DTE Put @165，收 $1.80。</p>
+      <p>20 天后 AAPL 跌到 162，被指派接 100 股 @165。<b>实际成本 = 165 - 1.80 - 2.50 = $160.70</b></p>
+      <p><b>Round 3 (Covered Call)：</b>持有 100 股，卖 30 DTE Call @175，收 $2.10。</p>
+      <p>30 天后 AAPL=178，Call 被行权，<b>交付正股 @175，收回 $17,500 + 之前权利金 $210</b></p>
+      <p><b>总收益：</b>(175 - 160.70) × 100 + 210 = <span class="num">$1,640（10 个月期）</span></p>
+    </div>
+
+    <div class="box warn"><b>⚠️ Wheel 不是万能：</b>熊市中可能持续套牢。如果 AAPL 跌到 130 你还在 165 接货，浮亏 $3,500，权利金根本补不回。Wheel 最适合<b>横盘到温和上涨</b>的市场。</div>
+  </div>
+
+  <!-- ============ 5. LEAPS ============ -->
+  <div class="pb" id="leaps" style="border-left-color:var(--accent)">
+    <div class="pb-h">
+      <div class="icon" style="background:rgba(31,111,235,.18)">📈</div>
+      <div>
+        <h2>LEAPS 长期投资 · 1+ 年期权</h2>
+        <div class="sub">用期权替代正股的资金效率玩法</div>
+      </div>
+    </div>
+
+    <div class="subh">▸ 什么是 LEAPS</div>
+    <p>Long-term Equity AnticiPation Securities — 到期 ≥ 1 年的长期期权。<b>Theta 衰减极慢</b>，主要靠 Delta + Vega 赚钱。可视为"杠杆版正股"。</p>
+
+    <div class="subh">▸ 两大用法</div>
+
+    <div class="subh">①  深度 ITM LEAPS Call（替代正股）</div>
+    <ul>
+      <li><b>Δ 选择：</b><code>0.80-0.90</code>（深度 ITM，行为接近正股）</li>
+      <li><b>DTE：</b>1-2 年</li>
+      <li><b>资金效率：</b>~30% 的正股价格获得 80-90% 的 Delta 暴露</li>
+      <li><b>缺点：</b>没有股息、需要每年滚动一次</li>
+    </ul>
+
+    <div class="example">
+      <div class="label">📚 示例 — AAPL LEAPS 替代正股</div>
+      <p>AAPL=180。1 年后到期的 Call @150，权利金 $40，Δ=0.85。</p>
+      <p><b>对比：</b>买 100 股正股需要 $18,000；买 1 张 LEAPS 只需 $4,000（占用资金 22%），获得 85 Δ 暴露。</p>
+      <p>如果 AAPL 涨到 220（+22%），LEAPS Call 价值约 $73 → <span class="num">收益 +83%</span></p>
+    </div>
+
+    <div class="subh">② PMCC (Poor Man's Covered Call)</div>
+    <p>买 LEAPS Call 替代正股，再卖近月 OTM Call 收权利金。资金效率比传统 Covered Call 高 4-5 倍。详见<a href="options-advanced.html#pmcc" style="color:var(--blue)">进阶策略 → PMCC</a>。</p>
+
+    <div class="box tip"><b>💡 LEAPS 的隐藏价值：</b>对于税务敏感账户，LEAPS 可以把短期资本利得（&lt;1年）转化为长期资本利得（≥1年）。美股纳税效率显著提升。</div>
+  </div>
+
+  <!-- ============ 6. 仓位管理 ============ -->
+  <div class="pb" id="sizing" style="border-left-color:var(--yellow)">
+    <div class="pb-h">
+      <div class="icon" style="background:rgba(210,153,34,.18)">💰</div>
+      <div>
+        <h2>仓位管理 · Position Sizing</h2>
+        <div class="sub">活下去比赚钱更重要</div>
+      </div>
+    </div>
+
+    <div class="subh">▸ 三层风控规则</div>
+    <table class="t">
+      <thead>
+        <tr><th>层级</th><th>规则</th><th>典型阈值</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>单笔风险</b></td><td>单笔交易最大亏损占总资金</td><td><code>1-3%</code></td></tr>
+        <tr><td><b>单标的风险</b></td><td>同一标的全部头寸最大亏损</td><td><code>5%</code></td></tr>
+        <tr><td><b>组合风险</b></td><td>所有头寸同时最大亏损</td><td><code>15-25%</code></td></tr>
+        <tr><td><b>Beta-weighted Δ</b></td><td>组合等价正股头寸 / 总资金</td><td>≤ <code>0.5</code></td></tr>
+      </tbody>
+    </table>
+
+    <div class="subh">▸ 单笔仓位计算</div>
+    <p><b>目标</b>：单笔交易最大亏损 = 总资金 × 1.5%（保守值）</p>
+    <p><b>公式：</b><code>合约数 = (总资金 × 1.5%) / 单张合约最大亏损</code></p>
+    <div class="example">
+      <div class="label">📚 示例</div>
+      <p>总资金 $50,000，目标单笔风险 = $750。某 Iron Condor 单张最大亏损 $300。</p>
+      <p>合约数 = $750 / $300 = 2.5 → 取 <span class="num">2 张</span>。</p>
+    </div>
+
+    <div class="subh">▸ Kelly 公式（进阶）</div>
+    <p>对于胜率 P、盈亏比 R 的策略，最优仓位比例 <code>f = (P × R - (1-P)) / R</code></p>
+    <p><b>实务建议：</b>用 <b>Half-Kelly</b>（即 f/2）实际操作，因为胜率/盈亏比估计有误差，全 Kelly 太激进。</p>
+  </div>
+
+  <!-- ============ 7. 常见陷阱 ============ -->
+  <div class="pb" id="mistakes" style="border-left-color:var(--red)">
+    <div class="pb-h">
+      <div class="icon" style="background:rgba(248,81,73,.18)">⚠️</div>
+      <div>
+        <h2>常见陷阱 · 新手最常踩的坑</h2>
+        <div class="sub">前人的血泪经验</div>
+      </div>
+    </div>
+
+    <ul>
+      <li><b>1. 买深度 OTM 期权当彩票：</b>胜率 5%、盈亏比 50:1 听起来很美，但 95% 的概率归零。实际期望值是负的（手续费 + 流动性折损）。</li>
+      <li><b>2. 财报后追涨买 Call：</b>Vol Crush 后 Call 已经贬值 50%，方向看对都赚不到。</li>
+      <li><b>3. 卖 Put 摊低成本：</b>熊市中标的不断创新低，每一笔卖出都是接刀子。一次黑天鹅抹掉几个月权利金。</li>
+      <li><b>4. 不设止损的 Short Strangle：</b>历史上 Short Strangle 长期年化 15-20%，但一次大幅黑天鹅可能直接破产。务必设 2× 净收入止损。</li>
+      <li><b>5. 持仓到期前才发现 Pin Risk：</b>到期日 ATM 期权可能一夜变成大头寸。临近到期主动平仓 ATM 头寸。</li>
+      <li><b>6. 用全部资金做单笔："</b>"All in" 是赌徒，单笔风险必须控制在总资金 3% 以内。</li>
+      <li><b>7. 加仓亏损头寸：</b>"Martingale" 式加仓——每次加倍再下注，看似聪明实则灾难。</li>
+      <li><b>8. 忽略手续费 / 滑点：</b>4 腿铁鹰来回各 0.5-1% 滑点，加上手续费，一年滚动 12 次的隐性成本可达年化 5-10%。</li>
+      <li><b>9. 看 Greeks 而不看 IV Rank：</b>Δ 0.16 在 IV Rank 20 和 IV Rank 80 是完全不同的策略（前者权利金薄、后者厚）。</li>
+      <li><b>10. 情绪化交易：</b>盈利时贪婪不平仓、亏损时恐惧不止损——这是亏损的真正原因。坚守预设规则才是赢家。</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <b>📌 使用建议：</b>不要试图一次掌握所有 Playbook。挑 1-2 个适合自己资金量和性格的，<b>用小仓位反复实操 6 个月</b>，再考虑扩展到其他场景。<br>
+    <b>📌 复盘必做：</b>每笔交易记录入场理由、调整决策、最终盈亏、原因分析。3 个月后回看，70% 的"运气好"和"运气差"会原形毕露。
+  </div>
+
+  </main>
+</div>
+
+<script>
+const tocLinks = document.querySelectorAll('.toc a');
+const targets = Array.from(tocLinks).map(a => {
+  const id = a.getAttribute('href').slice(1);
+  return { link: a, el: document.getElementById(id) };
+}).filter(t => t.el);
+
+function setActive() {
+  const y = window.scrollY + 80;
+  let cur = targets[0];
+  for (const t of targets) if (t.el.offsetTop <= y) cur = t;
+  tocLinks.forEach(a => a.classList.remove('active'));
+  if (cur) cur.link.classList.add('active');
+}
+window.addEventListener('scroll', setActive, { passive: true });
+setActive();
+
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const id = a.getAttribute('href').slice(1);
+    if (!id) return;
+    const t = document.getElementById(id);
+    if (!t) return;
+    e.preventDefault();
+    window.scrollTo({ top: t.offsetTop - 60, behavior: 'smooth' });
+    history.replaceState(null, '', '#' + id);
+    t.classList.remove('flash');
+    void t.offsetWidth;
+    t.classList.add('flash');
+  });
+});
+</script>
+
+</body>
+</html>

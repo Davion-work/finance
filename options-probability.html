@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>期权概率计算器 — POP · Expected Move · 概率分布</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --text: #c9d1d9; --muted: #8b949e; --accent: #1f6feb;
+  --green: #3fb950; --red: #f85149; --blue: #58a6ff; --yellow: #d29922;
+  --purple: #bc8cff; --orange: #f0883e; --teal: #39c5cf;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Header */
+.hdr {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 10px 20px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.hdr h1 { font-size: 14px; font-weight: 600; color: #f0f6fc; }
+.tab-nav { display: flex; gap: 4px; margin-left: 20px; }
+.tab-nav a {
+  padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  color: var(--muted); text-decoration: none; border: 1px solid transparent;
+  transition: all .15s;
+}
+.tab-nav a:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.tab-nav a.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+.tag {
+  padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  background: rgba(63,185,80,.12); color: var(--green);
+  border: 1px solid rgba(63,185,80,.3);
+}
+
+.layout { display: flex; flex: 1; overflow: hidden; }
+
+/* Sidebar */
+.sidebar {
+  width: 270px; flex-shrink: 0;
+  background: var(--surface); border-right: 1px solid var(--border);
+  padding: 14px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.sec {
+  font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--muted); margin-bottom: 7px;
+}
+.param { margin-bottom: 10px; }
+.ph { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.pname { font-size: 11.5px; color: var(--muted); }
+.pval { font-size: 12px; font-weight: 700; color: #f0f6fc; font-variant-numeric: tabular-nums; }
+input[type=range] {
+  width: 100%; height: 3px; -webkit-appearance: none; appearance: none;
+  background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px;
+  background: var(--accent); border-radius: 50%; cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(31,111,235,.18);
+}
+
+/* Strategy list */
+.slist { display: flex; flex-direction: column; gap: 5px; }
+.sitem {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; user-select: none; transition: all .15s;
+}
+.sitem:hover { border-color: var(--muted); }
+.sitem.active { border-color: var(--accent); background: rgba(31,111,235,.06); }
+.sdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sname { flex: 1; }
+.sname b { display: block; font-size: 11.5px; color: #f0f6fc; }
+.sname small { color: var(--muted); font-size: 10px; }
+
+/* Main area */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.cwrap { flex: 1; padding: 12px 18px 8px; position: relative; overflow: hidden; min-height: 0; }
+
+/* Metric cards */
+.metrics { border-top: 1px solid var(--border); padding: 12px 18px; background: var(--surface); flex-shrink: 0; }
+.mhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+.mhead .sec { margin-bottom: 0; }
+.mhead .legend { display: flex; gap: 12px; font-size: 10.5px; color: var(--muted); }
+.mhead .legend span { display: flex; align-items: center; gap: 5px; }
+.mhead .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+.mgrid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(6, 1fr);
+}
+@media (max-width: 1280px) { .mgrid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 720px)  { .mgrid { grid-template-columns: repeat(2, 1fr); } }
+
+.mcard {
+  background: var(--bg); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 7px;
+  padding: 9px 11px;
+}
+.mcard .mtitle {
+  font-size: 9.5px; color: var(--muted); margin-bottom: 4px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.mcard .mvalue {
+  font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.mcard .msub {
+  font-size: 10.5px; color: var(--muted); margin-top: 4px; line-height: 1.5;
+}
+.mcard .msub b { color: var(--text); }
+.up { color: var(--green); } .dn { color: var(--red); } .mid { color: var(--blue); }
+.warn { color: var(--yellow); } .neutral { color: var(--text); }
+
+/* POP bar */
+.popbar {
+  height: 4px; border-radius: 2px;
+  background: var(--border); margin-top: 6px; overflow: hidden;
+}
+.popbar .fill { height: 100%; background: var(--green); transition: width .3s; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>期权概率计算器</h1>
+  <div class="tab-nav">
+    <a href="options-glossary.html">术语词典</a>
+    <a href="options-guide.html">策略指南</a>
+    <a href="options-payoff.html">单腿策略</a>
+    <a href="options-strategy.html">组合策略</a>
+    <a href="options-probability.html" class="active">概率计算器</a>
+    <a href="options-adjustments.html">调整决策</a>
+    <a href="options-playbook.html">场景 Playbook</a>
+    <a href="options-advanced.html">进阶策略</a>
+    <a href="options-quotes.html">实时行情</a>
+  </div>
+  <span class="tag">POP · Expected Move · 概率分布</span>
+</div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div>
+      <div class="sec">基础参数</div>
+      <div class="param">
+        <div class="ph"><span class="pname">现价 S</span><span class="pval" id="dS">100</span></div>
+        <input type="range" min="10" max="500" step="1" value="100" oninput="P.S=+this.value;eid('dS').textContent=this.value;render()">
+      </div>
+      <div class="param">
+        <div class="ph"><span class="pname">波动率 σ</span><span class="pval" id="dSig">25%</span></div>
+        <input type="range" min="5" max="150" step="1" value="25" oninput="P.sigma=this.value/100;eid('dSig').textContent=this.value+'%';render()">
+      </div>
+      <div class="param">
+        <div class="ph"><span class="pname">到期天数 T</span><span class="pval" id="dT">30 天</span></div>
+        <input type="range" min="1" max="365" step="1" value="30" oninput="P.T=+this.value;eid('dT').textContent=this.value+' 天';render()">
+      </div>
+      <div class="param">
+        <div class="ph"><span class="pname">无风险利率 r</span><span class="pval" id="dR">2.5%</span></div>
+        <input type="range" min="0" max="15" step="0.1" value="2.5" oninput="P.r=this.value/100;eid('dR').textContent=(+this.value).toFixed(1)+'%';render()">
+      </div>
+    </div>
+
+    <div>
+      <div class="sec">选择策略</div>
+      <div class="slist" id="stratList"></div>
+    </div>
+
+    <div id="stratParams"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="cwrap"><canvas id="chart"></canvas></div>
+    <div class="metrics">
+      <div class="mhead">
+        <div class="sec">概率与风险指标</div>
+        <div class="legend">
+          <span><i style="background:rgba(63,185,80,.5)"></i>盈利区间</span>
+          <span><i style="background:rgba(248,81,73,.5)"></i>亏损区间</span>
+          <span><i style="background:#58a6ff"></i>密度曲线</span>
+          <span><i style="background:#d29922"></i>盈亏平衡</span>
+        </div>
+      </div>
+      <div class="mgrid" id="mgrid"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const eid = s => document.getElementById(s);
+
+// ── Math ────────────────────────────────────────────────────
+function erfApprox(x) {
+  const s = x < 0 ? -1 : 1; x = Math.abs(x);
+  const t = 1/(1+0.3275911*x);
+  const poly = ((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t;
+  return s*(1-poly*Math.exp(-x*x));
+}
+const PHI = x => 0.5*(1+erfApprox(x/Math.SQRT2));
+
+function bsPrice(S, K, T, r, sig, type) {
+  if (T < 1e-5) return type === 'call' ? Math.max(S - K, 0) : Math.max(K - S, 0);
+  const sqT = Math.sqrt(T);
+  const d1 = (Math.log(S/K) + (r + 0.5*sig*sig)*T) / (sig*sqT);
+  const d2 = d1 - sig*sqT;
+  return type === 'call'
+    ? S * PHI(d1) - K * Math.exp(-r*T) * PHI(d2)
+    : K * Math.exp(-r*T) * PHI(-d2) - S * PHI(-d1);
+}
+
+// Lognormal price density at expiration
+function lognormalDensity(x, S, t, r, sigma) {
+  if (x <= 0 || t < 1e-9) return 0;
+  const mu = Math.log(S) + (r - 0.5*sigma*sigma) * t;
+  const sd = sigma * Math.sqrt(t);
+  const lnx = Math.log(x);
+  return Math.exp(-((lnx - mu) ** 2) / (2*sd*sd)) / (x * sd * Math.sqrt(2*Math.PI));
+}
+
+// Probability that S_T > x at expiration (risk-neutral)
+function probAbove(x, S, t, r, sigma) {
+  if (t < 1e-9) return S > x ? 1 : 0;
+  const d = (Math.log(S/x) + (r - 0.5*sigma*sigma)*t) / (sigma * Math.sqrt(t));
+  return PHI(d);
+}
+
+// ── State ───────────────────────────────────────────────────
+const P = { S: 100, sigma: 0.25, T: 30, r: 0.025 };
+let activeStrat = 'long_call';
+const EP = { K1: 0, K2: 0, K3: 0, K4: 0 };
+
+// ── Strategy definitions ────────────────────────────────────
+const STRATEGIES = {
+  long_call: {
+    name: '买入看涨', eng: 'Long Call', color: '#3fb950', desc: '看涨方向 · 单腿',
+    extraParams: [{ id: 'K1', label: '行权价 K', min: -30, max: 30, def: 0 }],
+    legs: (S, eps) => [{ type: 'call', sign: +1, K: S + eps[0] }],
+  },
+  short_call: {
+    name: '卖出看涨', eng: 'Short Call', color: '#f85149', desc: '中性偏空 · 单腿',
+    extraParams: [{ id: 'K1', label: '行权价 K', min: -30, max: 30, def: 5 }],
+    legs: (S, eps) => [{ type: 'call', sign: -1, K: S + eps[0] }],
+  },
+  long_put: {
+    name: '买入看跌', eng: 'Long Put', color: '#58a6ff', desc: '看跌方向 · 单腿',
+    extraParams: [{ id: 'K1', label: '行权价 K', min: -30, max: 30, def: 0 }],
+    legs: (S, eps) => [{ type: 'put', sign: +1, K: S + eps[0] }],
+  },
+  short_put: {
+    name: '卖出看跌', eng: 'Short Put', color: '#d29922', desc: '中性偏多 · 单腿',
+    extraParams: [{ id: 'K1', label: '行权价 K', min: -30, max: 30, def: -5 }],
+    legs: (S, eps) => [{ type: 'put', sign: -1, K: S + eps[0] }],
+  },
+  bull_call: {
+    name: '牛市看涨价差', eng: 'Bull Call Spread', color: '#3fb950', desc: '温和看涨 · 借方',
+    extraParams: [
+      { id: 'K1', label: '低 K₁', min: -30, max: 0, def: -3 },
+      { id: 'K2', label: '高 K₂', min: 0, max: 30, def: 7 },
+    ],
+    legs: (S, eps) => [
+      { type: 'call', sign: +1, K: S + eps[0] },
+      { type: 'call', sign: -1, K: S + eps[1] },
+    ],
+  },
+  bear_put: {
+    name: '熊市看跌价差', eng: 'Bear Put Spread', color: '#f85149', desc: '温和看跌 · 借方',
+    extraParams: [
+      { id: 'K1', label: '低 K₁', min: -30, max: 0, def: -7 },
+      { id: 'K2', label: '高 K₂', min: 0, max: 30, def: 3 },
+    ],
+    legs: (S, eps) => [
+      { type: 'put', sign: -1, K: S + eps[0] },
+      { type: 'put', sign: +1, K: S + eps[1] },
+    ],
+  },
+  iron_condor: {
+    name: '铁鹰式', eng: 'Iron Condor', color: '#bc8cff', desc: '区间震荡 · 高胜率',
+    extraParams: [
+      { id: 'K1', label: '最低 K₁', min: -40, max: -10, def: -15 },
+      { id: 'K2', label: '低 K₂',  min: -20, max: 0,   def: -7 },
+      { id: 'K3', label: '高 K₃',  min: 0,   max: 20,  def: 7 },
+      { id: 'K4', label: '最高 K₄', min: 10,  max: 40,  def: 15 },
+    ],
+    legs: (S, eps) => [
+      { type: 'put',  sign: +1, K: S + eps[0] },
+      { type: 'put',  sign: -1, K: S + eps[1] },
+      { type: 'call', sign: -1, K: S + eps[2] },
+      { type: 'call', sign: +1, K: S + eps[3] },
+    ],
+  },
+  long_straddle: {
+    name: '买入跨式', eng: 'Long Straddle', color: '#58a6ff', desc: '做多波动率',
+    extraParams: [{ id: 'K1', label: '行权价 K', min: -30, max: 30, def: 0 }],
+    legs: (S, eps) => [
+      { type: 'call', sign: +1, K: S + eps[0] },
+      { type: 'put',  sign: +1, K: S + eps[0] },
+    ],
+  },
+  short_straddle: {
+    name: '卖出跨式', eng: 'Short Straddle', color: '#d29922', desc: '做空波动率',
+    extraParams: [{ id: 'K1', label: '行权价 K', min: -30, max: 30, def: 0 }],
+    legs: (S, eps) => [
+      { type: 'call', sign: -1, K: S + eps[0] },
+      { type: 'put',  sign: -1, K: S + eps[0] },
+    ],
+  },
+};
+
+function renderStratList() {
+  const el = eid('stratList');
+  el.innerHTML = Object.entries(STRATEGIES).map(([k, v]) => `
+    <div class="sitem ${k===activeStrat?'active':''}" onclick="selectStrat('${k}')">
+      <div class="sdot" style="background:${v.color}"></div>
+      <div class="sname"><b>${v.name}</b><small>${v.eng} · ${v.desc}</small></div>
+    </div>`).join('');
+}
+
+function selectStrat(k) {
+  activeStrat = k;
+  STRATEGIES[k].extraParams.forEach(ep => { EP[ep.id] = ep.def; });
+  renderStratList();
+  renderExtraParams();
+  render();
+}
+
+function renderExtraParams() {
+  const strat = STRATEGIES[activeStrat];
+  eid('stratParams').innerHTML = `<div><div class="sec">策略行权价</div>${
+    strat.extraParams.map(ep => {
+      const val = EP[ep.id];
+      return `<div class="param">
+        <div class="ph"><span class="pname">${ep.label}</span><span class="pval" id="d${ep.id}">${P.S+val} (S${val>=0?'+':''}${val})</span></div>
+        <input type="range" min="${ep.min}" max="${ep.max}" step="1" value="${val}"
+          oninput="EP.${ep.id}=+this.value;eid('d${ep.id}').textContent=(P.S+ +this.value)+' (S'+(this.value>=0?'+':'')+this.value+')';render()">
+      </div>`;
+    }).join('')
+  }</div>`;
+}
+
+// ── Compute strategy metrics ────────────────────────────────
+function computeMetrics() {
+  const { S, sigma, r } = P;
+  const t = P.T / 365;
+  const strat = STRATEGIES[activeStrat];
+  const eps = strat.extraParams.map(ep => EP[ep.id]);
+  const legsRaw = strat.legs(S, eps);
+
+  // Compute premium for each leg via BS
+  const legs = legsRaw.map(l => ({
+    ...l,
+    premium: bsPrice(S, l.K, t, r, sigma, l.type),
+  }));
+
+  // Net cost: positive = paid (debit), negative = received (credit)
+  const netCost = legs.reduce((sum, l) => sum + l.sign * l.premium, 0);
+
+  // Build price grid: ±3.5σ around S
+  const sd = sigma * Math.sqrt(t);
+  const lo = Math.max(0.1, S * Math.exp(-3.5 * sd));
+  const hi = S * Math.exp(+3.5 * sd);
+  const N = 401;
+  const prices = Array.from({ length: N }, (_, i) => lo + (hi - lo) * i / (N - 1));
+  const dx = (hi - lo) / (N - 1);
+
+  // Payoff at expiration for each price point
+  const payoffs = prices.map(p => {
+    let total = 0;
+    legs.forEach(l => {
+      const iv = l.type === 'call' ? Math.max(p - l.K, 0) : Math.max(l.K - p, 0);
+      total += l.sign * (iv - l.premium);
+    });
+    return total;
+  });
+
+  // Lognormal density
+  const densities = prices.map(p => lognormalDensity(p, S, t, r, sigma));
+
+  // POP: ∫ f(x) dx where payoff > 0
+  let pop = 0;
+  for (let i = 0; i < N; i++) {
+    if (payoffs[i] > 0) pop += densities[i] * dx;
+  }
+
+  // Find breakevens (zero crossings)
+  const bes = [];
+  for (let i = 1; i < N; i++) {
+    const a = payoffs[i-1], b = payoffs[i];
+    if ((a < 0 && b > 0) || (a > 0 && b < 0) || (a === 0 && b !== 0)) {
+      const ratio = Math.abs(a) / (Math.abs(a) + Math.abs(b));
+      bes.push(prices[i-1] + ratio * dx);
+    }
+  }
+
+  // Max profit / loss
+  const maxProfit = Math.max(...payoffs);
+  const maxLoss = Math.min(...payoffs);
+
+  // Expected Move (1σ, 2σ) - geometric brownian motion bounds
+  const drift = (r - 0.5*sigma*sigma) * t;
+  const em1Lo = S * Math.exp(drift - sd);
+  const em1Hi = S * Math.exp(drift + sd);
+  const em2Lo = S * Math.exp(drift - 2*sd);
+  const em2Hi = S * Math.exp(drift + 2*sd);
+
+  // Probability ITM for each leg
+  const legITM = legs.map(l => ({
+    ...l,
+    pITM: l.type === 'call' ? probAbove(l.K, S, t, r, sigma) : (1 - probAbove(l.K, S, t, r, sigma)),
+  }));
+
+  return {
+    legs, legITM, netCost, prices, payoffs, densities, dx,
+    pop, bes, maxProfit, maxLoss,
+    em1Lo, em1Hi, em2Lo, em2Hi,
+  };
+}
+
+// ── Chart ───────────────────────────────────────────────────
+const chart = new Chart(eid('chart').getContext('2d'), {
+  type: 'line', data: { datasets: [] },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    parsing: false, normalized: true,
+    interaction: { mode: 'index', intersect: false, axis: 'x' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1c2130', titleColor: '#8b949e', bodyColor: '#f0f6fc',
+        borderColor: '#30363d', borderWidth: 1, padding: 10,
+        callbacks: {
+          title: items => `到期价 ¥${items[0].parsed.x.toFixed(2)}`,
+          label: item => {
+            if (item.dataset._kind === 'density') {
+              const v = item.parsed.y;
+              return ` 概率密度: ${v < 0.001 ? v.toExponential(2) : v.toFixed(4)}`;
+            }
+            return null;
+          },
+          labelColor: () => ({ borderColor: '#58a6ff', backgroundColor: '#58a6ff' }),
+        },
+        filter: item => item.dataset._kind === 'density',
+      },
+      annotation: { annotations: {} },
+    },
+    scales: {
+      x: {
+        type: 'linear', grid: { color: '#21262d' },
+        ticks: { color: '#8b949e', maxTicksLimit: 9, callback: v => `¥${v.toFixed(0)}` },
+        title: { display: true, text: '到期日股价', color: '#8b949e', font: { size: 11 } },
+      },
+      y: {
+        grid: { color: '#21262d' },
+        ticks: { color: '#8b949e', callback: v => v.toFixed(3) },
+        title: { display: true, text: '概率密度', color: '#8b949e', font: { size: 11 } },
+        beginAtZero: true,
+      },
+    },
+  },
+});
+
+function renderChart(m) {
+  const { prices, payoffs, densities } = m;
+  const N = prices.length;
+
+  // Two filled datasets: profit-zone and loss-zone (under density curve)
+  const profData = prices.map((x, i) => ({ x, y: payoffs[i] > 0 ? densities[i] : null }));
+  const lossData = prices.map((x, i) => ({ x, y: payoffs[i] <= 0 ? densities[i] : null }));
+
+  chart.data.datasets = [
+    {
+      _kind: 'profit',
+      data: profData,
+      borderColor: 'rgba(63,185,80,0)', backgroundColor: 'rgba(63,185,80,.18)',
+      fill: 'origin', pointRadius: 0, spanGaps: false, tension: 0,
+    },
+    {
+      _kind: 'loss',
+      data: lossData,
+      borderColor: 'rgba(248,81,73,0)', backgroundColor: 'rgba(248,81,73,.16)',
+      fill: 'origin', pointRadius: 0, spanGaps: false, tension: 0,
+    },
+    {
+      _kind: 'density',
+      data: prices.map((x, i) => ({ x, y: densities[i] })),
+      borderColor: '#58a6ff', borderWidth: 1.8,
+      pointRadius: 0, fill: false, tension: 0.05,
+    },
+  ];
+
+  // Annotations
+  const ann = {};
+  ann.spotLine = {
+    type: 'line', scaleID: 'x', value: P.S,
+    borderColor: 'rgba(139,148,158,.7)', borderWidth: 1.5, borderDash: [5,4],
+    label: {
+      display: true, content: `现价 ${P.S}`, position: 'start',
+      color: '#8b949e', font: { size: 10 },
+      backgroundColor: 'rgba(13,17,23,.85)', padding: { x: 4, y: 2 }, yAdjust: 0,
+    },
+  };
+  // Breakeven lines
+  m.bes.forEach((be, i) => {
+    ann[`be${i}`] = {
+      type: 'line', scaleID: 'x', value: be,
+      borderColor: 'rgba(210,153,34,.7)', borderWidth: 1.2, borderDash: [4,3],
+      label: {
+        display: true, content: `BE ${be.toFixed(1)}`, position: 'end',
+        color: '#d29922', font: { size: 10 },
+        backgroundColor: 'rgba(13,17,23,.85)', padding: { x: 4, y: 2 }, yAdjust: 14 + i*16,
+      },
+    };
+  });
+  // 1σ markers
+  ann.s1Lo = sigmaMarker(m.em1Lo, '−1σ', 'rgba(88,166,255,.55)');
+  ann.s1Hi = sigmaMarker(m.em1Hi, '+1σ', 'rgba(88,166,255,.55)');
+  ann.s2Lo = sigmaMarker(m.em2Lo, '−2σ', 'rgba(88,166,255,.3)');
+  ann.s2Hi = sigmaMarker(m.em2Hi, '+2σ', 'rgba(88,166,255,.3)');
+
+  chart.options.plugins.annotation.annotations = ann;
+  chart.update('none');
+}
+
+function sigmaMarker(value, label, color) {
+  return {
+    type: 'line', scaleID: 'x', value,
+    borderColor: color, borderWidth: 1, borderDash: [2, 4],
+    label: {
+      display: true, content: label, position: 'end',
+      color: '#58a6ff', font: { size: 9 },
+      backgroundColor: 'rgba(13,17,23,.85)', padding: { x: 3, y: 1 }, yAdjust: -4,
+    },
+  };
+}
+
+// ── Render metrics ──────────────────────────────────────────
+function renderMetrics(m) {
+  const popPct = m.pop * 100;
+  const popColor = popPct >= 60 ? 'up' : popPct >= 40 ? 'mid' : 'dn';
+  const netLabel = m.netCost > 0 ? '支出 (借方)' : '收入 (贷方)';
+  const fmt = v => v.toFixed(2);
+  const fmtMoney = v => Math.abs(v) > 9999 ? '∞' : (v >= 0 ? '+' : '') + v.toFixed(2);
+  const rrRatio = (m.maxProfit > 9999 || m.maxLoss < -9999)
+    ? '—'
+    : `1 : ${(Math.abs(m.maxProfit / m.maxLoss)).toFixed(2)}`;
+
+  // Probability ITM by leg
+  const legText = m.legITM.map(l => {
+    const op = l.sign > 0 ? '买' : '卖';
+    const t = l.type === 'call' ? 'C' : 'P';
+    return `<b>${op}${t}@${l.K.toFixed(0)}</b> ${(l.pITM*100).toFixed(1)}%`;
+  }).join(' · ');
+
+  const cards = [
+    {
+      title: 'POP 盈利概率', color: popColor,
+      value: `${popPct.toFixed(1)}%`,
+      sub: `<b>${popPct >= 60 ? '高胜率' : popPct >= 40 ? '中等胜率' : '低胜率·高赔率型'}</b> · 风险中性测度`,
+      bar: popPct,
+    },
+    {
+      title: '预期移动 1σ', color: 'mid',
+      value: `±${(m.em1Hi - P.S).toFixed(1)}`,
+      sub: `区间 <b>[${m.em1Lo.toFixed(1)}, ${m.em1Hi.toFixed(1)}]</b> · 68.3% 包含`,
+    },
+    {
+      title: '预期移动 2σ', color: 'mid',
+      value: `±${(m.em2Hi - P.S).toFixed(1)}`,
+      sub: `区间 <b>[${m.em2Lo.toFixed(1)}, ${m.em2Hi.toFixed(1)}]</b> · 95.4% 包含`,
+    },
+    {
+      title: '盈亏平衡点', color: 'warn',
+      value: m.bes.length ? m.bes.map(b => fmt(b)).join(' / ') : '—',
+      sub: m.bes.length === 0 ? '策略无盈亏穿越点' :
+           m.bes.length === 1 ? '单边盈亏曲线' :
+           '双边平衡（区间策略）',
+    },
+    {
+      title: '最大盈/亏', color: 'neutral',
+      value: `<span class="up">${fmtMoney(m.maxProfit)}</span> / <span class="dn">${fmtMoney(m.maxLoss)}</span>`,
+      sub: `R/R 比 <b>${rrRatio}</b>`,
+    },
+    {
+      title: '净权利金', color: m.netCost > 0 ? 'dn' : 'up',
+      value: `${m.netCost > 0 ? '−' : '+'}${Math.abs(m.netCost).toFixed(2)}`,
+      sub: `<b>${netLabel}</b><br>各腿 ITM: ${legText}`,
+    },
+  ];
+
+  eid('mgrid').innerHTML = cards.map(c => `
+    <div class="mcard">
+      <div class="mtitle">${c.title}</div>
+      <div class="mvalue ${c.color}">${c.value}</div>
+      <div class="msub">${c.sub}</div>
+      ${c.bar !== undefined ? `<div class="popbar"><div class="fill" style="width:${c.bar}%;background:${popColor==='up'?'var(--green)':popColor==='mid'?'var(--blue)':'var(--red)'}"></div></div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ── Render ──────────────────────────────────────────────────
+function render() {
+  const m = computeMetrics();
+  renderChart(m);
+  renderMetrics(m);
+}
+
+// Init
+renderStratList();
+selectStrat('long_call');
+</script>
+
+</body>
+</html>

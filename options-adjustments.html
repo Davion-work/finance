@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>期权调整决策树 — Adjustment Playbook</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+  --text: #c9d1d9; --muted: #8b949e; --accent: #1f6feb;
+  --green: #3fb950; --red: #f85149; --blue: #58a6ff; --yellow: #d29922;
+  --purple: #bc8cff; --orange: #f0883e; --teal: #39c5cf;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px; min-height: 100vh;
+}
+
+.hdr {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 30; flex-wrap: wrap;
+}
+.hdr h1 { font-size: 14px; font-weight: 600; color: #f0f6fc; }
+.tab-nav { display: flex; gap: 4px; margin-left: 20px; flex-wrap: wrap; }
+.tab-nav a {
+  padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  color: var(--muted); text-decoration: none; border: 1px solid transparent;
+  transition: all .15s; white-space: nowrap;
+}
+.tab-nav a:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.tab-nav a.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+.tag {
+  padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  background: rgba(240,136,62,.12); color: var(--orange);
+  border: 1px solid rgba(240,136,62,.3);
+}
+
+.container { max-width: 1280px; margin: 0 auto; padding: 22px 20px 50px; }
+
+.intro {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 20px; margin-bottom: 24px; line-height: 1.7;
+}
+.intro h2 { font-size: 15px; color: #f0f6fc; margin-bottom: 8px; }
+.intro p { color: var(--muted); font-size: 12.5px; }
+.intro b { color: var(--text); }
+
+/* Section */
+.sec-h {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 17px; font-weight: 600; color: #f0f6fc;
+  margin: 28px 0 12px; padding-top: 8px;
+}
+.sec-h .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 7px;
+  color: #fff; font-size: 12px; font-weight: 700;
+}
+.sec-sub { font-size: 12px; color: var(--muted); margin: -4px 0 14px 38px; line-height: 1.6; }
+
+/* Decision frame */
+.frame {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px; margin-bottom: 14px;
+}
+.frame h4 {
+  font-size: 13.5px; color: #f0f6fc; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.frame h4 .badge {
+  padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;
+  background: rgba(31,111,235,.12); color: var(--accent);
+}
+
+.qbox {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 10px;
+}
+.qbox .q {
+  font-size: 13px; color: var(--blue); font-weight: 600; margin-bottom: 6px;
+}
+.qbox .a { font-size: 12px; color: var(--text); line-height: 1.7; }
+.qbox .a b { color: #f0f6fc; }
+
+/* Decision tree */
+.dtree { display: flex; flex-direction: column; gap: 10px; }
+.dnode {
+  background: var(--surface2); border-left: 3px solid var(--accent);
+  border-radius: 6px; padding: 10px 14px;
+  font-size: 12px; line-height: 1.7;
+}
+.dnode .if { color: var(--yellow); font-weight: 700; }
+.dnode .then { color: var(--green); font-weight: 700; }
+.dnode b { color: #f0f6fc; }
+.dnode.warn { border-left-color: var(--red); background: rgba(248,81,73,.04); }
+.dnode.tip  { border-left-color: var(--green); background: rgba(63,185,80,.04); }
+.dnode.action {
+  display: flex; gap: 12px;
+}
+.dnode .branch { flex: 1; }
+
+/* Strategy adjustment cards */
+.strat-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+}
+
+.strat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 10px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;
+  scroll-margin-top: 60px;
+}
+.strat-card h3 {
+  font-size: 14px; color: #f0f6fc; font-weight: 600;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.strat-card h3 .eng { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+.situation {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px 12px; font-size: 12px; line-height: 1.65;
+}
+.situation .label {
+  display: inline-block; padding: 2px 7px; border-radius: 3px;
+  font-size: 10px; font-weight: 700; margin-right: 6px;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.situation .label.win  { background: rgba(63,185,80,.18);  color: var(--green); }
+.situation .label.lose { background: rgba(248,81,73,.18);  color: var(--red); }
+.situation .label.flat { background: rgba(139,148,158,.18); color: var(--muted); }
+.situation .label.exp  { background: rgba(188,140,255,.18); color: var(--purple); }
+.situation b { color: #f0f6fc; }
+.situation .sig { color: var(--yellow); font-weight: 600; font-size: 11px; display: block; margin-top: 4px; }
+.situation .act { color: var(--green); font-weight: 600; font-size: 11.5px; display: block; margin-top: 6px; }
+.situation .act .alt { color: var(--blue); }
+
+/* Table */
+table.t {
+  width: 100%; border-collapse: collapse; font-size: 11.5px;
+  background: var(--bg); border-radius: 6px; overflow: hidden;
+}
+table.t th, table.t td {
+  padding: 7px 10px; border: 1px solid var(--border); text-align: left;
+}
+table.t th {
+  background: var(--surface2); color: var(--muted); font-weight: 600;
+  font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+}
+table.t td { color: var(--text); line-height: 1.5; }
+table.t td b { color: #f0f6fc; }
+.up { color: var(--green); } .dn { color: var(--red); }
+
+/* Case study */
+.case {
+  background: var(--surface2); border: 1px dashed var(--border);
+  border-radius: 8px; padding: 14px 16px; margin: 12px 0;
+}
+.case h5 {
+  font-size: 12.5px; color: var(--blue); font-weight: 700;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.case .step {
+  font-size: 12px; color: var(--text); line-height: 1.7;
+  padding: 4px 0; border-bottom: 1px solid var(--border);
+}
+.case .step:last-child { border-bottom: none; }
+.case .step .num {
+  display: inline-block; width: 18px; text-align: center;
+  color: var(--accent); font-weight: 700; margin-right: 6px;
+}
+.case .step b { color: var(--yellow); }
+.case .result {
+  margin-top: 8px; padding: 8px 10px;
+  background: rgba(63,185,80,.08); border-left: 2px solid var(--green);
+  border-radius: 4px; font-size: 11.5px; color: var(--text);
+}
+.case .result.bad {
+  background: rgba(248,81,73,.08); border-left-color: var(--red);
+}
+
+/* Quick jump */
+.qjump {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: -4px 0 18px 38px;
+}
+.qjump a {
+  font-size: 11px; padding: 3px 9px; border-radius: 4px;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--muted); text-decoration: none;
+  transition: all .12s;
+}
+.qjump a:hover { color: var(--blue); border-color: var(--accent); background: rgba(31,111,235,.08); }
+
+.foot {
+  margin-top: 32px; padding: 14px 16px;
+  background: var(--surface2); border: 1px dashed var(--border); border-radius: 8px;
+  font-size: 11.5px; color: var(--muted); line-height: 1.7;
+}
+.foot b { color: var(--text); }
+
+@keyframes flash {
+  0%   { box-shadow: 0 0 0 0 rgba(31,111,235,.7); }
+  20%  { box-shadow: 0 0 0 3px rgba(31,111,235,.7); }
+  100% { box-shadow: 0 0 0 0 rgba(31,111,235,0); }
+}
+.flash { animation: flash 1.4s ease; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>期权调整决策树</h1>
+  <div class="tab-nav">
+    <a href="options-glossary.html">术语词典</a>
+    <a href="options-guide.html">策略指南</a>
+    <a href="options-payoff.html">单腿策略</a>
+    <a href="options-strategy.html">组合策略</a>
+    <a href="options-probability.html">概率计算器</a>
+    <a href="options-adjustments.html" class="active">调整决策</a>
+    <a href="options-playbook.html">场景 Playbook</a>
+    <a href="options-advanced.html">进阶策略</a>
+    <a href="options-quotes.html">实时行情</a>
+  </div>
+  <span class="tag">何时调整 · 何时止损 · 何时持有</span>
+</div>
+
+<div class="container">
+
+<div class="intro">
+  <h2>关于本指南</h2>
+  <p>"建仓简单，平仓难。" 期权交易 70% 的失败不在选择策略，而在<b>持仓走错时不知道怎么救</b>。本页提供一套结构化的调整决策框架：先用<b>通用三问</b>诊断处境，再按策略类型查找具体的<b>修复方案</b>，最后用<b>真实案例</b>看完整流程。</p>
+</div>
+
+<!-- Quick jump -->
+<div class="qjump">
+  <a href="#frame">通用决策框架</a>
+  <a href="#long-options">Long 期权调整</a>
+  <a href="#short-put-adj">Short Put 调整</a>
+  <a href="#spread-adj">Vertical Spread 调整</a>
+  <a href="#ic-adj">Iron Condor 调整</a>
+  <a href="#straddle-adj">Straddle/Strangle 调整</a>
+  <a href="#rolling">Rolling 通用技巧</a>
+  <a href="#decision">止损 vs 调整 vs 持有</a>
+  <a href="#case">实战案例</a>
+</div>
+
+<!-- ========== Section 1: 通用决策框架 ========== -->
+<div class="sec-h" id="frame">
+  <span class="num" style="background:var(--accent)">1</span>
+  通用决策框架
+</div>
+<div class="sec-sub">在做任何调整之前，先回答这三个问题。它们能过滤掉 80% 不必要的"病急乱投医"。</div>
+
+<div class="frame">
+  <h4><span class="badge">三问诊断法</span></h4>
+  <div class="qbox">
+    <div class="q">Q1 · 我的<b>原始论点</b>还成立吗？</div>
+    <div class="a">建仓时基于的方向 / 波动率 / 事件假设是否仍然有效？如果<b>原始论点已经失效</b>（如财报已揭晓但反应与预期相反），任何"加仓摊低成本"或"对冲拖延"都是在恶化处境，<b>应该止损</b>而不是调整。</div>
+  </div>
+  <div class="qbox">
+    <div class="q">Q2 · 当前<b>风险敞口</b>是否还在我的预算内？</div>
+    <div class="a">建仓时设定了最大可承受亏损（如总资金的 1-3%）。当前未实现亏损是否已超过预算？是否会因 Greeks 变化而进一步放大？<b>风险已超</b>必须果断减仓或对冲。</div>
+  </div>
+  <div class="qbox">
+    <div class="q">Q3 · 调整后的<b>新头寸</b>是不是我现在愿意建的？</div>
+    <div class="a">用"<b>归零再建</b>"思维：假设现在是空仓，给我同样的资金和当前行情，我会建这个调整后的头寸吗？如果不会，那调整本身就是错误的——你只是在用旧仓位绑架自己。</div>
+  </div>
+</div>
+
+<!-- ========== Section 2: 各策略调整指南 ========== -->
+<div class="sec-h" id="long-options">
+  <span class="num" style="background:var(--green)">2</span>
+  Long Call / Long Put 调整
+</div>
+<div class="sec-sub">买方策略时间是敌人。调整的核心矛盾：方向看对了但时间不够。</div>
+
+<div class="strat-card" style="border-left-color:var(--green)">
+  <h3>买入期权 <span class="eng">Long Call / Long Put · 借方</span></h3>
+
+  <div class="situation">
+    <span class="label win">盈利</span><b>方向看对，已浮盈 50%+</b>
+    <span class="sig">⚡ 信号：Δ 已接近 ±0.7-0.8、剩余时间还充裕、IV 上升</span>
+    <span class="act">✓ <b>选 1：分批止盈</b> — 平掉 50% 锁定利润，剩下 50% 让其奔跑（设移动止损）<br>
+    <b>选 2：Roll Up</b> — 平掉当前实值期权，买更高 K 的 OTM 期权（"用利润再下注"）<br>
+    <span class="alt">避免：</span>"舍不得卖"——剩余 30% 时间价值会被 Theta 蚕食</span>
+  </div>
+
+  <div class="situation">
+    <span class="label lose">亏损</span><b>方向暂时看错，浮亏 30-50%</b>
+    <span class="sig">⚡ 信号：Δ 还很小、Theta 持续吞噬权利金、剩余时间 < 50%</span>
+    <span class="act">✓ <b>选 1：止损</b> — 接受亏损，保留资金机会成本<br>
+    <b>选 2：Roll Out</b> — 平当前合约，买更远到期 + 同 K（用更多时间换看对方向的概率）<br>
+    <b>选 3：转为 Spread</b> — 卖一个更高 K 的 Call/更低 K 的 Put 形成价差，回收一些权利金<br>
+    <span class="alt">避免：</span>"加仓摊低成本"——双倍下注一个已被市场否决的方向</span>
+  </div>
+
+  <div class="situation">
+    <span class="label flat">横盘</span><b>方向没动，Theta 在咬</b>
+    <span class="sig">⚡ 信号：每天损失加速、IV 也在下降（Vol Crush）</span>
+    <span class="act">✓ <b>果断止损</b> — Long 期权最忌横盘。买的是"波动 + 方向"两个押注，横盘下两个都输<br>
+    <span class="alt">不推荐：</span>Roll Out（你只是在延后认错）</span>
+  </div>
+
+  <div class="situation">
+    <span class="label exp">临近到期</span><b>剩余 ≤ 7 天</b>
+    <span class="sig">⚡ 信号：Theta 加速衰减、Gamma 风险放大</span>
+    <span class="act">✓ <b>OTM 期权：</b>果断止损（Theta 急速归零）<br>
+    <b>ATM 期权：</b>除非有强方向催化，否则平仓<br>
+    <b>ITM 期权：</b>可考虑行权或滚到下月（避免 Pin Risk）</span>
+  </div>
+</div>
+
+<div class="sec-h" id="short-put-adj">
+  <span class="num" style="background:var(--yellow)">3</span>
+  Short Put 调整
+</div>
+<div class="sec-sub">卖方策略时间是朋友，但方向看错时被指派接货是最大风险。</div>
+
+<div class="strat-card" style="border-left-color:var(--yellow)">
+  <h3>卖出看跌 <span class="eng">Short Put · 含 Cash-Secured Put</span></h3>
+
+  <div class="situation">
+    <span class="label win">盈利</span><b>方向看对，已收 50%+ 权利金</b>
+    <span class="sig">⚡ 信号：Δ 已降至 -0.1 ~ 0、距到期还有 &gt;50% 时间</span>
+    <span class="act">✓ <b>提前平仓</b> — 用 50% 时间赚 50% 权利金，剩余风险/收益比已不划算<br>
+    <b>资金腾挪</b> — 平仓后立即开下一个 Put（"50% 利润法则"）<br>
+    <span class="alt">不推荐：</span>持有到期赚最后一分钱——黑天鹅风险</span>
+  </div>
+
+  <div class="situation">
+    <span class="label lose">亏损</span><b>标的下跌，浮亏接近最大亏损 50%</b>
+    <span class="sig">⚡ 信号：Δ 已接近 -0.7、标的接近行权价 K</span>
+    <span class="act">✓ <b>选 1：Roll Down and Out</b> — 平当前合约，卖一个<b>更低 K + 更远到期</b>的 Put（继续收权利金，给方向更多时间）<br>
+    <b>选 2：接受指派</b> — 如果 K 是你愿意持有的价位，让其行权变成正股，启动 Wheel<br>
+    <b>选 3：止损</b> — 如果原始论点失效（如基本面恶化），认错平仓<br>
+    <span class="alt">避免：</span>"加倍卖更多 Put"——熊市中是经典送钱方式</span>
+  </div>
+
+  <div class="situation">
+    <span class="label exp">临近到期</span><b>ATM 状态，DTE ≤ 3 天</b>
+    <span class="sig">⚡ 信号：Pin Risk、Gamma 极大、不知道是否会被指派</span>
+    <span class="act">✓ <b>主动平仓</b>（哪怕只剩 0.05 权利金）— 避免周末跳空指派<br>
+    <b>或 Roll Out</b> — 滚到下月相同 K，多收 1 倍权利金继续等</span>
+  </div>
+</div>
+
+<div class="sec-h" id="spread-adj">
+  <span class="num" style="background:var(--blue)">4</span>
+  Vertical Spread 调整
+</div>
+<div class="sec-sub">借方价差（Bull Call / Bear Put）和贷方价差（Bull Put / Bear Call）的调整逻辑相反。</div>
+
+<div class="strat-card" style="border-left-color:var(--blue)">
+  <h3>借方价差 <span class="eng">Bull Call Spread · Bear Put Spread</span></h3>
+
+  <div class="situation">
+    <span class="label win">盈利</span><b>方向看对，价差已接近最大盈利 80%</b>
+    <span class="act">✓ <b>提前平仓锁定</b> — 剩余 20% 利润需要标的进一步深入实值，风险/收益比恶化<br>
+    <b>Roll Up/Down</b>（罕见）— 如果方向继续强势，可平掉旧价差换更激进的新价差</span>
+  </div>
+
+  <div class="situation">
+    <span class="label lose">亏损</span><b>方向看错，浮亏 50%+</b>
+    <span class="act">✓ <b>选 1：止损</b> — 借方价差最大亏损就是净成本，认错最干净<br>
+    <b>选 2：Roll Out</b> — 平当前价差，用类似净成本买更远到期的同结构价差<br>
+    <span class="alt">避免：</span>把腿"展宽"加大风险——价差被设计成"风险有限"，违反这一点就失去意义</span>
+  </div>
+</div>
+
+<div class="strat-card" style="border-left-color:var(--purple)">
+  <h3>贷方价差 <span class="eng">Bull Put · Bear Call Spread</span></h3>
+
+  <div class="situation">
+    <span class="label win">盈利</span><b>权利金已收回 50-80%</b>
+    <span class="act">✓ <b>提前平仓</b>（同 Short Put 50% 法则）— 释放保证金继续滚动</span>
+  </div>
+
+  <div class="situation">
+    <span class="label lose">亏损</span><b>标的逼近 Short 腿 K，Δ 已大幅放大</b>
+    <span class="act">✓ <b>选 1：Roll 到下月同结构</b> — 多收一倍权利金，给方向修复时间<br>
+    <b>选 2：转为 Iron Condor</b> — 在反方向开一个贷方价差，把单边风险变成区间风险<br>
+    <b>选 3：止损</b> — 当亏损达到 200% 净收入时认错（行业经验值）</span>
+  </div>
+</div>
+
+<div class="sec-h" id="ic-adj">
+  <span class="num" style="background:var(--purple)">5</span>
+  Iron Condor 调整
+</div>
+<div class="sec-sub">铁鹰式有 4 条腿，调整空间最丰富。核心思路：<b>守住未受威胁的一侧，修复受威胁的一侧</b>。</div>
+
+<div class="strat-card" style="border-left-color:var(--purple)">
+  <h3>铁鹰式调整 <span class="eng">Iron Condor</span></h3>
+
+  <div class="situation">
+    <span class="label win">盈利</span><b>标的稳在区间中央，已赚 50% 净收入</b>
+    <span class="act">✓ <b>主动平仓</b>（"50% Profit Take"）— 这是 Tom Sosnoff 等机构的标准做法。剩余 50% 利润不值得继续承担尾部风险</span>
+  </div>
+
+  <div class="situation">
+    <span class="label lose">亏损</span><b>单边受威胁（如 Call 那侧）</b>
+    <span class="sig">⚡ 信号：标的接近 K₃（Short Call）、Δ_short_call &gt; 0.3</span>
+    <span class="act">✓ <b>选 1：Roll Up 受威胁的一侧</b> — 把 Bull Put Spread 那侧整体上移到接近现价（多收权利金、扩大上行盈利区）<br>
+    <b>选 2：Roll Out 整体到下月</b> — 同结构滚到下个月，多收一倍权利金<br>
+    <b>选 3：变形为蝶式</b> — 卖出 Call 价差移近，买出 Call 翼也跟着移，构造 Reverse Iron Butterfly<br>
+    <span class="alt">避免：</span>只调整未受威胁的一侧——锁死的是机会，不是风险</span>
+  </div>
+
+  <div class="situation">
+    <span class="label lose">亏损</span><b>双边受威胁（罕见，标的剧烈波动后回归）</b>
+    <span class="act">✓ <b>整体止损</b> — 预期已被市场证伪，再调整只是延后认错</span>
+  </div>
+
+  <div class="situation">
+    <span class="label exp">临近到期</span><b>受威胁腿在 ATM 附近</b>
+    <span class="act">✓ <b>必须主动平仓 / 滚动</b> — Gamma 风险极大，到期日跳空可能瞬间击穿翼</span>
+  </div>
+</div>
+
+<div class="sec-h" id="straddle-adj">
+  <span class="num" style="background:var(--orange)">6</span>
+  Straddle / Strangle 调整
+</div>
+<div class="sec-sub">跨式与宽跨式调整的核心：方向已经明朗时<b>非对称化</b>头寸。</div>
+
+<div class="strat-card" style="border-left-color:var(--blue)">
+  <h3>买入跨式调整 <span class="eng">Long Straddle</span></h3>
+
+  <div class="situation">
+    <span class="label win">盈利</span><b>方向爆发后，一侧已大幅盈利</b>
+    <span class="act">✓ <b>选 1：平掉盈利腿，留亏损腿</b> — 用盈利锁定，亏损腿成"免费看涨权"<br>
+    <b>选 2：Roll 亏损腿</b> — 平掉过期的虚值腿，用回收资金调整方向<br>
+    <b>选 3：双腿全平</b> — 最干净的做法，避免 Theta 继续衰减</span>
+  </div>
+
+  <div class="situation">
+    <span class="label lose">亏损</span><b>事件揭晓后 IV Crush，双腿同步贬值</b>
+    <span class="act">✓ <b>果断止损</b> — Long Straddle 最大敌人，认错越早越好。这是事件驱动失败的标准结局</span>
+  </div>
+</div>
+
+<div class="strat-card" style="border-left-color:var(--yellow)">
+  <h3>卖出跨式 / 宽跨式调整 <span class="eng">Short Straddle / Strangle</span></h3>
+
+  <div class="situation">
+    <span class="label lose">亏损</span><b>单边突破，标的远离 K</b>
+    <span class="act">✓ <b>选 1：Roll 受威胁腿</b> — 把虚值的腿移到更接近现价（多收权利金、降低受冲击侧）<br>
+    <b>选 2：转为 Iron Condor</b> — 加买保护翼把无限风险变成有限<br>
+    <b>选 3：变成 Strangle</b>（仅 Straddle 时）— 把双 K 拉开降低 ATM 暴露<br>
+    <span class="alt">关键：</span>当亏损达到收到权利金的 200% 时<b>必须止损</b></span>
+  </div>
+</div>
+
+<!-- ========== Section 7: Rolling 通用技巧 ========== -->
+<div class="sec-h" id="rolling">
+  <span class="num" style="background:var(--teal)">7</span>
+  Rolling 通用技巧
+</div>
+<div class="sec-sub">"展期" 是期权调整最常用的工具。三种主要 Rolling 方式 + 实操规则。</div>
+
+<table class="t">
+  <thead>
+    <tr><th>类型</th><th>操作</th><th>目的</th><th>典型场景</th><th>注意</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><b>Roll Out</b></td><td>同 K，<b>更远到期</b></td><td>给方向更多时间修复</td><td>Long 期权浮亏、Short 期权临到期 ATM</td><td>必须收净权利金或零成本，否则等于继续追加投入</td></tr>
+    <tr><td><b>Roll Up / Down</b></td><td>同到期，<b>调整 K</b></td><td>追逐方向（Long）或防守（Short）</td><td>Long Call 已 ITM 想止盈再下注；Short Put 受威胁</td><td>Roll Up Long Call 等于"用利润再下注"，要确认论点仍成立</td></tr>
+    <tr><td><b>Roll Out and Up/Down</b></td><td>同时调整<b>到期 + K</b></td><td>双重防守</td><td>Iron Condor 受威胁的一侧、贷方价差被穿透</td><td>多腿调整手续费高，确认确实有改善才执行</td></tr>
+    <tr><td><b>Diagonal Roll</b></td><td>跨腿展期</td><td>将单腿期权变成日历价差</td><td>Long Call 浮亏想保留方向但减成本</td><td>构造复杂，需要熟悉日历价差</td></tr>
+  </tbody>
+</table>
+
+<div class="dnode tip" style="margin-top:14px">
+  <span class="then">📐 Rolling 的黄金准则</span> ·
+  <b>规则 1：</b>必须收<b>净权利金</b>（贷方）或<b>零成本</b>。如果 Roll 反而要付钱，本质上是加仓，应该重新评估。<br>
+  <b>规则 2：</b>不要在<b>大幅亏损</b>时 Roll Out 太远——那是给市场更多时间证明你错了。Roll Out 一般以 30-45 天为限。<br>
+  <b>规则 3：</b><b>原始论点</b>已经失效时，<b>不要 Roll</b>，应该止损。Rolling 是给"对的策略一些时间"，不是给"错的方向找借口"。
+</div>
+
+<!-- ========== Section 8: 决策框架 ========== -->
+<div class="sec-h" id="decision">
+  <span class="num" style="background:var(--red)">8</span>
+  止损 vs 调整 vs 持有
+</div>
+<div class="sec-sub">最核心也最难的判断。这个矩阵帮助快速决策。</div>
+
+<table class="t">
+  <thead>
+    <tr><th>状态组合</th><th>原始论点</th><th>风险敞口</th><th>剩余时间</th><th>推荐动作</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><b class="dn">深度浮亏</b></td><td>已失效</td><td>已超预算</td><td>—</td><td><b class="dn">立即止损</b>（情绪上最难，但理性上唯一选择）</td></tr>
+    <tr><td><b class="dn">深度浮亏</b></td><td>仍成立</td><td>仍在预算内</td><td>≥ 50%</td><td><b style="color:var(--yellow)">Roll Out</b>（给方向时间）</td></tr>
+    <tr><td><b class="dn">中等浮亏</b></td><td>仍成立</td><td>仍在预算内</td><td>—</td><td><b style="color:var(--blue)">持有</b>（小亏不需要调整）</td></tr>
+    <tr><td><b style="color:var(--muted)">基本横盘</b></td><td>—</td><td>—</td><td>≤ 30%</td><td><b style="color:var(--yellow)">提前平仓</b>（Theta 加速期，剩余收益有限）</td></tr>
+    <tr><td><b class="up">中等浮盈</b></td><td>仍成立</td><td>—</td><td>—</td><td><b style="color:var(--blue)">持有 + 移动止损</b></td></tr>
+    <tr><td><b class="up">深度浮盈</b></td><td>—</td><td>—</td><td>—</td><td><b class="up">提前平仓</b>（50% 法则、80% 法则）</td></tr>
+  </tbody>
+</table>
+
+<!-- ========== Section 9: 实战案例 ========== -->
+<div class="sec-h" id="case">
+  <span class="num" style="background:var(--accent)">9</span>
+  实战案例
+</div>
+<div class="sec-sub">3 个真实情境，看完整调整流程。</div>
+
+<div class="case">
+  <h5>📚 案例 1 — Iron Condor 单边受威胁的标准修复</h5>
+  <div class="step"><span class="num">①</span><b>初始：</b>SPY=450 时建 IC：Buy 430P / Sell 440P / Sell 460C / Buy 470C，DTE 45 天，净收 $1.50</div>
+  <div class="step"><span class="num">②</span><b>第 20 天：</b>SPY 涨到 458，Short Call 那侧 Δ=0.32，价差已浮亏。检查三问：方向论点（震荡）受挑战但未完全失效；风险敞口仍在预算；剩余时间 25 天。</div>
+  <div class="step"><span class="num">③</span><b>调整：</b>Roll Up 整个 IC 到 SPY=458 中心：Buy 438P / Sell 448P / Sell 468C / Buy 478C，<b>多收净权利金 $0.40</b>。</div>
+  <div class="step"><span class="num">④</span><b>结果：</b>SPY 回到 455 横盘，新 IC 在区间中央到期作废，总收益 $1.90 × 100 = $190。</div>
+  <div class="result">✅ 关键：调整后是"零成本或贷方"，且 Roll 后<b>论点更合理</b>（区间向上挪了 8 元）。</div>
+</div>
+
+<div class="case">
+  <h5>📚 案例 2 — Long Call 财报后认错</h5>
+  <div class="step"><span class="num">①</span><b>初始：</b>NVDA 财报前 1 周，IV=70%，买 ATM Long Call DTE=14，权利金 $8</div>
+  <div class="step"><span class="num">②</span><b>财报次日：</b>NVDA 仅涨 2%（市场预期 +5%），IV 暴跌至 40%（Vol Crush）。Call 价值 $4.5，浮亏 44%。</div>
+  <div class="step"><span class="num">③</span><b>三问诊断：</b>原始论点（财报超预期 + IV 上升）<b>已完全失效</b>。继续持有等于赌"还能涨回来"——新的赌博，不是原计划。</div>
+  <div class="step"><span class="num">④</span><b>动作：</b>当天平仓止损，亏损 $3.5。</div>
+  <div class="result">✅ 关键：原始论点失效时，<b>立即止损</b>。如果当时 Roll Out 到下月，会被 Theta 继续吞噬，到期前可能归零。</div>
+</div>
+
+<div class="case">
+  <h5>📚 案例 3 — Short Put 接货转 Wheel</h5>
+  <div class="step"><span class="num">①</span><b>初始：</b>看好 AAPL 长期，180 价位 CSP，K=170，DTE 30，收 $2.50</div>
+  <div class="step"><span class="num">②</span><b>到期前 5 天：</b>AAPL 跌到 168，Short Put 已浮亏 $1。Δ_put=-0.65。</div>
+  <div class="step"><span class="num">③</span><b>三问诊断：</b>原始论点（长期看好）成立；K=170 是<b>愿意接货的价位</b>；不需要调整。</div>
+  <div class="step"><span class="num">④</span><b>动作：</b>持有到期，被指派以 $170 接 100 股 AAPL。<b>实际成本 = 170 - 2.50 = $167.50</b>（含权利金）。</div>
+  <div class="step"><span class="num">⑤</span><b>下一步：</b>启动 Wheel — 卖 1 张 OTM Covered Call @ K=180，再收一份权利金。如此循环。</div>
+  <div class="result">✅ 关键：被指派<b>不是失败</b>。如果 K 是你愿意持有的价位，接货就是计划的一部分。</div>
+</div>
+
+<div class="foot">
+  <b>📌 阅读建议：</b>遇到具体持仓问题时，先看 <a href="#frame" style="color:var(--blue)">通用决策框架</a> 的三问，再跳到对应策略章节。术语含义见<a href="options-glossary.html" style="color:var(--blue)">术语词典</a>，策略详细操作见<a href="options-playbook.html" style="color:var(--blue)">场景 Playbook</a>。<br>
+  <b>📌 风险提示：</b>调整不是万能药，更不是"避免认错"的工具。最专业的交易者也会有 30-40% 的策略亏损，关键是<b>每次亏损都不要超过预算</b>。
+</div>
+
+</div>
+
+<script>
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const id = a.getAttribute('href').slice(1);
+    if (!id) return;
+    const t = document.getElementById(id);
+    if (!t) return;
+    e.preventDefault();
+    window.scrollTo({ top: t.offsetTop - 60, behavior: 'smooth' });
+    history.replaceState(null, '', '#' + id);
+    t.classList.remove('flash');
+    void t.offsetWidth;
+    t.classList.add('flash');
+  });
+});
+</script>
+
+</body>
+</html>
