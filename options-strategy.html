@@ -34,6 +34,9 @@ body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkM
 .ph { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
 .pname { font-size:11.5px; color:var(--muted); }
 .pval { font-size:12px; font-weight:700; color:#f0f6fc; font-variant-numeric:tabular-nums; }
+.pval-input { width:62px; padding:2px 6px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:#f0f6fc; font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; text-align:right; font-family:inherit; outline:none; transition:border-color .15s; }
+.pval-input:focus { border-color:var(--accent); background:#1c2128; }
+.pval-input::-webkit-inner-spin-button { opacity:0; width:0; }
 input[type=range] { width:100%; height:3px; -webkit-appearance:none; appearance:none; background:var(--border); border-radius:2px; outline:none; cursor:pointer; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:var(--accent); border-radius:50%; cursor:pointer; box-shadow:0 0 0 3px rgba(31,111,235,.18); }
 
@@ -97,20 +100,20 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; h
     <div>
       <div class="sec">基础参数</div>
       <div class="param">
-        <div class="ph"><span class="pname">现价 S</span><span class="pval" id="dS">100</span></div>
-        <input type="range" min="10" max="500" step="1" value="100" oninput="P.S=+this.value;eid('dS').textContent=this.value;render()">
+        <div class="ph"><span class="pname">现价 S</span><input class="pval-input" id="dS" type="number" min="10" max="500" step="1" value="100" onchange="syncInput('S',this,10,500,'sS')"></div>
+        <input type="range" id="sS" min="10" max="500" step="1" value="100" oninput="P.S=+this.value;eid('dS').value=this.value;renderExtraParams();render()">
       </div>
       <div class="param">
-        <div class="ph"><span class="pname">波动率 σ</span><span class="pval" id="dSig">25%</span></div>
-        <input type="range" min="5" max="150" step="1" value="25" oninput="P.sigma=this.value/100;eid('dSig').textContent=this.value+'%';render()">
+        <div class="ph"><span class="pname">波动率 σ</span><input class="pval-input" id="dSig" type="number" min="5" max="150" step="1" value="25" onchange="syncInputPct('sigma',this,5,150,'sSig')"> <span class="pname">%</span></div>
+        <input type="range" id="sSig" min="5" max="150" step="1" value="25" oninput="P.sigma=this.value/100;eid('dSig').value=this.value;render()">
       </div>
       <div class="param">
-        <div class="ph"><span class="pname">到期天数 T</span><span class="pval" id="dT">30 天</span></div>
-        <input type="range" min="1" max="365" step="1" value="30" oninput="P.T=+this.value;eid('dT').textContent=this.value+' 天';render()">
+        <div class="ph"><span class="pname">到期天数 T</span><input class="pval-input" id="dT" type="number" min="1" max="365" step="1" value="30" onchange="syncInput('T',this,1,365,'sT')"></div>
+        <input type="range" id="sT" min="1" max="365" step="1" value="30" oninput="P.T=+this.value;eid('dT').value=this.value;render()">
       </div>
       <div class="param">
-        <div class="ph"><span class="pname">无风险利率 r</span><span class="pval" id="dR">2.5%</span></div>
-        <input type="range" min="0" max="15" step="0.1" value="2.5" oninput="P.r=this.value/100;eid('dR').textContent=(+this.value).toFixed(1)+'%';render()">
+        <div class="ph"><span class="pname">无风险利率 r</span><input class="pval-input" id="dR" type="number" min="0" max="15" step="0.1" value="2.5" onchange="syncInputPct('r',this,0,15,'sR')"> <span class="pname">%</span></div>
+        <input type="range" id="sR" min="0" max="15" step="0.1" value="2.5" oninput="P.r=this.value/100;eid('dR').value=(+this.value).toFixed(1);render()">
       </div>
     </div>
 
@@ -136,6 +139,37 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; h
 
 <script>
 const eid = s => document.getElementById(s);
+
+// ── Input sync helpers ────────────────────────────────────────
+function syncInput(key, inputEl, min, max, sliderId) {
+  let v = parseFloat(inputEl.value);
+  if (isNaN(v)) v = min;
+  v = Math.max(min, Math.min(max, v));
+  inputEl.value = v;
+  P[key] = v;
+  eid(sliderId).value = v;
+  renderExtraParams();
+  render();
+}
+function syncInputPct(key, inputEl, min, max, sliderId) {
+  let v = parseFloat(inputEl.value);
+  if (isNaN(v)) v = min;
+  v = Math.max(min, Math.min(max, v));
+  inputEl.value = key === 'r' ? v.toFixed(1) : v;
+  P[key] = v / 100;
+  eid(sliderId).value = v;
+  render();
+}
+function syncEP(epId, inputEl, min, max, sliderId) {
+  let v = parseInt(inputEl.value);
+  if (isNaN(v)) v = 0;
+  v = Math.max(min, Math.min(max, v));
+  inputEl.value = v;
+  EP[epId] = v;
+  eid(sliderId).value = v;
+  eid('d'+epId).value = v;
+  render();
+}
 
 // ── Black-Scholes ─────────────────────────────────────────────
 function erfApprox(x) {
@@ -287,11 +321,10 @@ function renderExtraParams() {
   eid('stratParams').innerHTML = `<div><div class="sec">策略行权价</div>${
     strat.extraParams.map(ep => {
       const val = EP[ep.id];
-      const display = P.S + val;
       return `<div class="param">
-        <div class="ph"><span class="pname">${ep.label}</span><span class="pval" id="d${ep.id}">${display} (S${val>=0?'+':''}${val})</span></div>
-        <input type="range" min="${ep.min}" max="${ep.max}" step="${ep.step}" value="${val}"
-          oninput="EP.${ep.id}=+this.value;eid('d${ep.id}').textContent=(P.S+ +this.value)+' (S'+(this.value>=0?'+':'')+this.value+')';render()">
+        <div class="ph"><span class="pname">${ep.label}</span><input class="pval-input" id="d${ep.id}" type="number" min="${ep.min}" max="${ep.max}" step="${ep.step}" value="${val}" onchange="syncEP('${ep.id}',this,${ep.min},${ep.max},'s${ep.id}')"> <span class="pname" style="min-width:50px">= ${P.S+val}</span></div>
+        <input type="range" id="s${ep.id}" min="${ep.min}" max="${ep.max}" step="${ep.step}" value="${val}"
+          oninput="EP.${ep.id}=+this.value;eid('d${ep.id}').value=this.value;this.nextElementSibling||0;this.parentElement.querySelector('.pname:last-child').textContent='= '+(P.S+ +this.value);render()">
       </div>`;
     }).join('')
   }</div>`;

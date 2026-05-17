@@ -79,6 +79,14 @@ body {
 .ph { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
 .pname { font-size: 11.5px; color: var(--muted); }
 .pval  { font-size: 12px; font-weight: 700; color: #f0f6fc; font-variant-numeric: tabular-nums; }
+.pval-input {
+  width: 62px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg); color: #f0f6fc; font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums; text-align: right; font-family: inherit;
+  outline: none; transition: border-color .15s;
+}
+.pval-input:focus { border-color: var(--accent); background: #1c2128; }
+.pval-input::-webkit-inner-spin-button { opacity: 0; width: 0; }
 
 input[type=range] {
   width: 100%; height: 3px; -webkit-appearance: none; appearance: none;
@@ -166,33 +174,33 @@ input[type=range]::-webkit-slider-thumb {
       <div class="sec">期权参数</div>
 
       <div class="param">
-        <div class="ph"><span class="pname">现价 S</span><span class="pval" id="dS">100</span></div>
-        <input type="range" min="10" max="500" step="1" value="100"
-          oninput="p.S=+this.value; eid('dS').textContent=this.value; render()">
+        <div class="ph"><span class="pname">现价 S</span><input class="pval-input" id="dS" type="number" min="10" max="500" step="1" value="100" onchange="syncFromInput('S',this,10,500,'sS')"></div>
+        <input type="range" id="sS" min="10" max="500" step="1" value="100"
+          oninput="p.S=+this.value; eid('dS').value=this.value; render()">
       </div>
 
       <div class="param">
-        <div class="ph"><span class="pname">行权价 K</span><span class="pval" id="dK">100</span></div>
-        <input type="range" min="10" max="500" step="1" value="100"
-          oninput="p.K=+this.value; eid('dK').textContent=this.value; render()">
+        <div class="ph"><span class="pname">行权价 K</span><input class="pval-input" id="dK" type="number" min="10" max="500" step="1" value="100" onchange="syncFromInput('K',this,10,500,'sK')"></div>
+        <input type="range" id="sK" min="10" max="500" step="1" value="100"
+          oninput="p.K=+this.value; eid('dK').value=this.value; render()">
       </div>
 
       <div class="param">
-        <div class="ph"><span class="pname">到期天数 T</span><span class="pval" id="dT">30 天</span></div>
-        <input type="range" min="1" max="365" step="1" value="30"
-          oninput="p.T=+this.value; eid('dT').textContent=this.value+' 天'; render()">
+        <div class="ph"><span class="pname">到期天数 T</span><input class="pval-input" id="dT" type="number" min="1" max="365" step="1" value="30" onchange="syncFromInput('T',this,1,365,'sT')"></div>
+        <input type="range" id="sT" min="1" max="365" step="1" value="30"
+          oninput="p.T=+this.value; eid('dT').value=this.value; render()">
       </div>
 
       <div class="param">
-        <div class="ph"><span class="pname">波动率 σ</span><span class="pval" id="dSig">25%</span></div>
-        <input type="range" min="5" max="150" step="1" value="25"
-          oninput="p.sigma=this.value/100; eid('dSig').textContent=this.value+'%'; render()">
+        <div class="ph"><span class="pname">波动率 σ</span><input class="pval-input" id="dSig" type="number" min="5" max="150" step="1" value="25" onchange="syncFromInputPct('sigma',this,5,150,'sSig')"> <span class="pname">%</span></div>
+        <input type="range" id="sSig" min="5" max="150" step="1" value="25"
+          oninput="p.sigma=this.value/100; eid('dSig').value=this.value; render()">
       </div>
 
       <div class="param">
-        <div class="ph"><span class="pname">无风险利率 r</span><span class="pval" id="dR">2.5%</span></div>
-        <input type="range" min="0" max="15" step="0.1" value="2.5"
-          oninput="p.r=this.value/100; eid('dR').textContent=(+this.value).toFixed(1)+'%'; render()">
+        <div class="ph"><span class="pname">无风险利率 r</span><input class="pval-input" id="dR" type="number" min="0" max="15" step="0.1" value="2.5" onchange="syncFromInputPct('r',this,0,15,'sR')"> <span class="pname">%</span></div>
+        <input type="range" id="sR" min="0" max="15" step="0.1" value="2.5"
+          oninput="p.r=this.value/100; eid('dR').value=(+this.value).toFixed(1); render()">
       </div>
     </div>
 
@@ -235,6 +243,26 @@ input[type=range]::-webkit-slider-thumb {
 
 <script>
 const eid = s => document.getElementById(s);
+
+// ── Input sync helpers ────────────────────────────────────────
+function syncFromInput(key, inputEl, min, max, sliderId) {
+  let v = parseFloat(inputEl.value);
+  if (isNaN(v)) v = min;
+  v = Math.max(min, Math.min(max, v));
+  inputEl.value = v;
+  p[key] = v;
+  eid(sliderId).value = v;
+  render();
+}
+function syncFromInputPct(key, inputEl, min, max, sliderId) {
+  let v = parseFloat(inputEl.value);
+  if (isNaN(v)) v = min;
+  v = Math.max(min, Math.min(max, v));
+  inputEl.value = key === 'r' ? v.toFixed(1) : v;
+  p[key] = v / 100;
+  eid(sliderId).value = v;
+  render();
+}
 
 // ── Black-Scholes math ────────────────────────────────────────
 function erfApprox(x) {
