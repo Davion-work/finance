@@ -1,2 +1,6 @@
 .claude
 .omc
+.env
+__pycache__/
+*.pyc
+options-opportunity-discovery/data/cache/
