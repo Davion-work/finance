@@ -1,0 +1,14 @@
+# 已弃用的旧配置（.env 方式已弃用，mcp-config.json 会打包但 url 为空）
+.env
+*.env
+.env.local
+.env.*.local
+.env.example
+
+# Python 缓存
+__pycache__
+*.pyc
+*.pyo
+
+# 系统文件
+.DS_Store
