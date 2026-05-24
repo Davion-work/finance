@@ -176,7 +176,7 @@ d₂ = d₁ − σ·√T
 ## 项目结构
 
 ```
-finance/
+options-learning-analysis/
 ├── options-payoff.html        # 单腿策略损益分析
 ├── options-strategy.html      # 组合策略损益分析
 ├── options-advanced.html      # 进阶策略分析
@@ -186,11 +186,12 @@ finance/
 ├── options-playbook.html      # 场景 Playbook（操作手册）
 ├── options-adjustments.html   # 调整决策树
 ├── options-glossary.html      # 术语词典
+├── quotes_server.py           # Yahoo Finance 代理服务
 ├── README.md                  # 本文件
-└── .claude/skills/            # AI Skill 配置
-    ├── options-analysis/      # 期权分析 skill
-    ├── quant-backtest/        # 量化回测 skill
-    └── stock-analysis/        # 股票分析 skill
+└── docs/                      # 项目文档
+    ├── README.md              # 文档目录导航
+    └── progress/
+        └── progress-and-roadmap.md  # 未来增补计划
 ```
 
 ## License
