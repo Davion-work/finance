@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>期权机会发现 | Options Opportunity Discovery</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1923;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a2a3a, #0f1923);
+            border-bottom: 1px solid #2a3a4a;
+            padding: 20px 40px;
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 { font-size: 1.5rem; color: #4fc3f7; }
+        .header .subtitle { font-size: 0.85rem; color: #78909c; margin-top: 4px; }
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            margin-top: 14px;
+            padding: 10px 16px;
+            background: #162030;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            align-items: center;
+        }
+        .status-item { display: flex; align-items: center; gap: 6px; }
+        .status-label { color: #78909c; }
+        .status-value { color: #b0bec5; font-weight: 500; }
+        .status-value.good { color: #81c784; }
+        .status-value.warn { color: #ffb74d; }
+        .actions { display: flex; gap: 10px; margin-left: auto; }
+        .btn {
+            border: none;
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary { background: #4fc3f7; color: #0f1923; }
+        .btn-primary:hover { background: #81d4fa; }
+        .btn-secondary { background: #263238; color: #b0bec5; border: 1px solid #37474f; }
+        .btn-secondary:hover { background: #37474f; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .main { padding: 24px 40px; }
+        .section { margin-bottom: 28px; }
+        .section h2 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section h2.leaps { color: #81c784; }
+        .section h2.sell-put { color: #ffb74d; }
+        .badge {
+            background: #263238;
+            color: #90a4ae;
+            font-size: 0.72rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th {
+            background: #1a2a3a;
+            color: #90a4ae;
+            padding: 9px 10px;
+            text-align: left;
+            font-weight: 500;
+            border-bottom: 1px solid #2a3a4a;
+            white-space: nowrap;
+        }
+        td { padding: 8px 10px; border-bottom: 1px solid #1a2a3a; }
+        tr:hover td { background: #1a2a3a; }
+        .empty-state { text-align: center; padding: 50px 20px; color: #546e7a; }
+        .empty-state p { margin-top: 8px; font-size: 0.88rem; }
+        .progress-bar {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 16px;
+            background: #162030;
+            border-radius: 8px;
+        }
+        .progress-bar .bar-bg {
+            background: #263238;
+            border-radius: 4px;
+            height: 6px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .progress-bar .bar-fill {
+            background: #4fc3f7;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .progress-text { font-size: 0.8rem; color: #78909c; }
+        .highlight { color: #4fc3f7; font-weight: 600; }
+        .positive { color: #81c784; }
+        .warning { color: #ffb74d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <div>
+                <h1>期权机会发现</h1>
+                <div class="subtitle">Options Opportunity Discovery - 基于本地缓存全量扫描</div>
+            </div>
+        </div>
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">关注池:</span>
+                <span class="status-value" id="watchlistCount">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">已缓存:</span>
+                <span class="status-value" id="cachedCount">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">有效数据:</span>
+                <span class="status-value" id="freshCount">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">上次更新:</span>
+                <span class="status-value" id="lastUpdate">-</span>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" id="scanBtn" onclick="scanOpportunities()">分析机会</button>
+                <button class="btn btn-secondary" id="refreshBtn" onclick="refreshData()">刷新数据</button>
+            </div>
+        </div>
+        <div class="progress-bar" id="progressBar">
+            <span class="progress-text" id="progressText">准备中...</span>
+            <div class="bar-bg"><div class="bar-fill" id="barFill"></div></div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div id="results" style="display:none;">
+            <div class="section">
+                <h2 class="leaps">LEAPS Call 机会 <span class="badge" id="leapsCount">0</span></h2>
+                <table id="leapsTable">
+                    <thead>
+                        <tr>
+                            <th>标的</th>
+                            <th>行权价</th>
+                            <th>到期日</th>
+                            <th>天数</th>
+                            <th>价格</th>
+                            <th>Delta</th>
+                            <th>IV</th>
+                            <th>杠杆</th>
+                            <th>盈亏平衡</th>
+                            <th>OI</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="section">
+                <h2 class="sell-put">Sell Put 机会 <span class="badge" id="sellPutCount">0</span></h2>
+                <table id="sellPutTable">
+                    <thead>
+                        <tr>
+                            <th>标的</th>
+                            <th>行权价</th>
+                            <th>到期日</th>
+                            <th>天数</th>
+                            <th>Bid</th>
+                            <th>IV</th>
+                            <th>OTM%</th>
+                            <th>年化收益</th>
+                            <th>最大亏损</th>
+                            <th>OI</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+            <h3>点击「刷新数据」获取关注池期权数据，然后「分析机会」</h3>
+            <p>系统会从 S&P 500 核心标的池中批量获取期权数据并缓存到本地，再基于缓存做全量策略扫描。</p>
+        </div>
+    </div>
+
+    <script>
+        let refreshTimer = null;
+
+        async function loadStatus() {
+            try {
+                const [cacheResp, watchResp] = await Promise.all([
+                    fetch('/api/cache/status'),
+                    fetch('/api/watchlist')
+                ]);
+                const cache = await cacheResp.json();
+                const watch = await watchResp.json();
+
+                document.getElementById('watchlistCount').textContent = watch.count;
+                document.getElementById('cachedCount').textContent = cache.totalCached;
+                document.getElementById('freshCount').textContent = cache.freshCount;
+                document.getElementById('freshCount').className =
+                    'status-value ' + (cache.freshCount > 0 ? 'good' : 'warn');
+                document.getElementById('lastUpdate').textContent =
+                    cache.lastFullUpdate ? new Date(cache.lastFullUpdate).toLocaleString() : '-';
+            } catch (e) { /* ignore */ }
+        }
+
+        async function scanOpportunities() {
+            const btn = document.getElementById('scanBtn');
+            btn.disabled = true;
+            btn.textContent = '分析中...';
+
+            try {
+                const resp = await fetch('/api/scan', { method: 'POST' });
+                const data = await resp.json();
+                renderResults(data);
+            } catch (e) {
+                alert('分析失败: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '分析机会';
+            }
+        }
+
+        async function refreshData() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.textContent = '启动中...';
+
+            try {
+                const resp = await fetch('/api/refresh', { method: 'POST' });
+                const data = await resp.json();
+                if (data.status === 'already_running') {
+                    btn.textContent = '进行中...';
+                } else {
+                    btn.textContent = '刷新中...';
+                }
+                document.getElementById('progressBar').style.display = 'block';
+                pollRefreshStatus();
+            } catch (e) {
+                alert('刷新失败: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = '刷新数据';
+            }
+        }
+
+        function pollRefreshStatus() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(async () => {
+                try {
+                    const resp = await fetch('/api/refresh/status');
+                    const st = await resp.json();
+                    const pct = st.total > 0 ? Math.round((st.progress / st.total) * 100) : 0;
+                    document.getElementById('barFill').style.width = pct + '%';
+                    document.getElementById('progressText').textContent =
+                        `${st.progress}/${st.total} - ${st.current || '...'}`;
+
+                    if (!st.running && st.progress > 0) {
+                        clearInterval(refreshTimer);
+                        refreshTimer = null;
+                        document.getElementById('progressBar').style.display = 'none';
+                        document.getElementById('refreshBtn').disabled = false;
+                        document.getElementById('refreshBtn').textContent = '刷新数据';
+                        if (st.result) {
+                            const r = st.result;
+                            document.getElementById('progressText').textContent =
+                                `Done: ${r.updated} updated, ${r.skipped} skipped, ${r.failed} failed`;
+                        }
+                        loadStatus();
+                    }
+                } catch (e) { /* ignore */ }
+            }, 2000);
+        }
+
+        function renderResults(data) {
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+
+            const leapsBody = document.querySelector('#leapsTable tbody');
+            leapsBody.innerHTML = '';
+            document.getElementById('leapsCount').textContent = data.leaps_call.length;
+            data.leaps_call.forEach(item => {
+                leapsBody.innerHTML += `<tr>
+                    <td class="highlight">${item.ticker}</td>
+                    <td>$${item.strike}</td>
+                    <td>${item.expirationDate}</td>
+                    <td>${item.daysToExpiry}d</td>
+                    <td>$${item.lastPrice}</td>
+                    <td>${item.delta}</td>
+                    <td>${(item.impliedVolatility * 100).toFixed(1)}%</td>
+                    <td class="positive">${item.leverage}x</td>
+                    <td>$${item.breakeven}</td>
+                    <td>${item.openInterest}</td>
+                </tr>`;
+            });
+
+            const spBody = document.querySelector('#sellPutTable tbody');
+            spBody.innerHTML = '';
+            document.getElementById('sellPutCount').textContent = data.sell_put.length;
+            data.sell_put.forEach(item => {
+                spBody.innerHTML += `<tr>
+                    <td class="highlight">${item.ticker}</td>
+                    <td>$${item.strike}</td>
+                    <td>${item.expirationDate}</td>
+                    <td>${item.daysToExpiry}d</td>
+                    <td>$${item.bid}</td>
+                    <td>${(item.impliedVolatility * 100).toFixed(1)}%</td>
+                    <td class="warning">${item.otmPercentage}%</td>
+                    <td class="positive">${item.annualizedReturn}%</td>
+                    <td>$${item.maxLoss}</td>
+                    <td>${item.openInterest}</td>
+                </tr>`;
+            });
+
+            if (data.meta) {
+                const info = `已扫描 ${data.meta.scannedFromCache}/${data.meta.watchlistSize} 个标的缓存`;
+                document.getElementById('emptyState').innerHTML = `<p style="color:#546e7a">${info}</p>`;
+                document.getElementById('emptyState').style.display = 'block';
+            }
+        }
+
+        // 初始化加载状态
+        loadStatus();
+    </script>
+</body>
+</html>
