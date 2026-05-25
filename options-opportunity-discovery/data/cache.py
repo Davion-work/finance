@@ -107,7 +107,7 @@ def get_cache_status() -> dict:
         try:
             with open(meta_path, "r", encoding="utf-8") as f:
                 meta = json.load(f)
-                last_update = meta.get("lastFullUpdate")
+                last_update = meta.get("lastFullUpdate") or meta.get("lastUpdate")
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -141,6 +141,7 @@ def _update_meta(ticker: str):
             meta = {}
 
     meta["lastUpdate"] = datetime.now().isoformat()
+    meta["lastFullUpdate"] = datetime.now().isoformat()
     meta["lastTicker"] = ticker
 
     with open(meta_path, "w", encoding="utf-8") as f:

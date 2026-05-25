@@ -25,13 +25,6 @@ def calculate_bsm_delta(
 ) -> float:
     """使用 Black-Scholes-Merton 模型计算 Call Delta
 
-    Args:
-        spot: 标的当前价格
-        strike: 行权价
-        time_to_expiry_years: 距到期的年数
-        risk_free_rate: 无风险利率
-        implied_vol: 隐含波动率
-
     Returns:
         Call Delta 值 (0~1)
     """
@@ -44,6 +37,45 @@ def calculate_bsm_delta(
     ) / (implied_vol * math.sqrt(time_to_expiry_years))
 
     return norm.cdf(d1)
+
+
+def _bsm_call_greeks(
+    spot: float,
+    strike: float,
+    time_to_expiry_years: float,
+    risk_free_rate: float,
+    implied_vol: float,
+) -> dict:
+    """使用 BSM 模型计算 Call 期权的 Delta / Gamma / Theta / Vega
+
+    Returns:
+        dict with keys: delta, gamma, theta, vega
+    """
+    if spot <= 0 or strike <= 0 or time_to_expiry_years <= 0 or implied_vol <= 0:
+        return {"delta": 0.0, "gamma": 0.0, "theta": 0.0, "vega": 0.0}
+
+    sqrt_t = math.sqrt(time_to_expiry_years)
+    d1 = (
+        math.log(spot / strike)
+        + (risk_free_rate + 0.5 * implied_vol ** 2) * time_to_expiry_years
+    ) / (implied_vol * sqrt_t)
+    d2 = d1 - implied_vol * sqrt_t
+
+    delta = norm.cdf(d1)
+    gamma = norm.pdf(d1) / (spot * implied_vol * sqrt_t)
+    theta_annual = (
+        -(spot * norm.pdf(d1) * implied_vol) / (2 * sqrt_t)
+        - risk_free_rate * strike * math.exp(-risk_free_rate * time_to_expiry_years) * norm.cdf(d2)
+    )
+    theta = theta_annual / 365.0
+    vega = spot * norm.pdf(d1) * sqrt_t / 100.0
+
+    return {
+        "delta": round(delta, 4),
+        "gamma": round(gamma, 6),
+        "theta": round(theta, 4),
+        "vega": round(vega, 4),
+    }
 
 
 class LeapsCallStrategy:
@@ -118,15 +150,16 @@ class LeapsCallStrategy:
             if strike <= 0 or last_price <= 0:
                 continue
 
-            # 使用 BSM 计算真实 Delta
+            # 使用 BSM 计算希腊字母
             time_to_expiry_years = days_to_expiry / 365.0
-            delta = calculate_bsm_delta(
+            greeks = _bsm_call_greeks(
                 spot=current_price,
                 strike=strike,
                 time_to_expiry_years=time_to_expiry_years,
                 risk_free_rate=self.risk_free_rate,
                 implied_vol=implied_vol,
             )
+            delta = greeks["delta"]
 
             if not (self.delta_range[0] <= delta <= self.delta_range[1]):
                 continue
@@ -134,6 +167,25 @@ class LeapsCallStrategy:
             # 计算杠杆倍数和盈亏平衡点
             leverage = current_price / last_price
             breakeven = strike + last_price
+
+            # 预期收益（Expected Value）
+            # BSM Call 理论价格 = S·N(d1) - K·e^(-rT)·N(d2)
+            # 即风险中性下 E[max(S_T - K, 0)] 的贴现值
+            d1 = (
+                math.log(current_price / strike)
+                + (self.risk_free_rate + 0.5 * implied_vol ** 2) * time_to_expiry_years
+            ) / (implied_vol * math.sqrt(time_to_expiry_years))
+            d2 = d1 - implied_vol * math.sqrt(time_to_expiry_years)
+            bsm_call_price = (
+                current_price * norm.cdf(d1)
+                - strike * math.exp(-self.risk_free_rate * time_to_expiry_years) * norm.cdf(d2)
+            )
+
+            prob_itm = delta
+            cost = last_price * 100
+            # EV = (BSM 理论价 - 实际买入价) × 100
+            # 正值 = 市场定价偏低，有正期望；负值 = 偏贵
+            expected_value = round((bsm_call_price - last_price) * 100, 2)
 
             opportunities.append({
                 "ticker": ticker,
@@ -143,13 +195,20 @@ class LeapsCallStrategy:
                 "lastPrice": last_price,
                 "bid": row.get("bid", 0),
                 "ask": row.get("ask", 0),
-                "delta": round(delta, 3),
+                "delta": greeks["delta"],
+                "gamma": greeks["gamma"],
+                "theta": greeks["theta"],
+                "vega": greeks["vega"],
                 "impliedVolatility": implied_vol,
                 "openInterest": open_interest,
                 "volume": row.get("volume", 0) or 0,
                 "leverage": round(leverage, 2),
                 "breakeven": round(breakeven, 2),
                 "currentPrice": current_price,
+                "maxProfit": "∞",
+                "maxLoss": round(cost, 2),
+                "expectedValue": expected_value,
+                "probITM": round(prob_itm * 100, 1),
             })
 
         # 按杠杆倍数排序

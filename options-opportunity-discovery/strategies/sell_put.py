@@ -10,8 +10,56 @@
 - 标的本身是愿意持有的优质股票
 """
 
+import math
 import pandas as pd
 from datetime import datetime
+from scipy.stats import norm
+
+
+def _bsm_put_greeks(
+    spot: float,
+    strike: float,
+    time_to_expiry_years: float,
+    risk_free_rate: float,
+    implied_vol: float,
+) -> dict:
+    """使用 BSM 模型计算 Put 期权的 Delta / Gamma / Theta / Vega
+
+    Returns:
+        dict with keys: delta, gamma, theta, vega
+    """
+    if spot <= 0 or strike <= 0 or time_to_expiry_years <= 0 or implied_vol <= 0:
+        return {"delta": 0.0, "gamma": 0.0, "theta": 0.0, "vega": 0.0}
+
+    sqrt_t = math.sqrt(time_to_expiry_years)
+    d1 = (
+        math.log(spot / strike)
+        + (risk_free_rate + 0.5 * implied_vol ** 2) * time_to_expiry_years
+    ) / (implied_vol * sqrt_t)
+    d2 = d1 - implied_vol * sqrt_t
+
+    # Put Delta = N(d1) - 1
+    delta = norm.cdf(d1) - 1.0
+
+    # Gamma（Call 和 Put 相同）
+    gamma = norm.pdf(d1) / (spot * implied_vol * sqrt_t)
+
+    # Theta（每日，Put）
+    theta_annual = (
+        -(spot * norm.pdf(d1) * implied_vol) / (2 * sqrt_t)
+        + risk_free_rate * strike * math.exp(-risk_free_rate * time_to_expiry_years) * norm.cdf(-d2)
+    )
+    theta = theta_annual / 365.0
+
+    # Vega（每 1% IV 变化）
+    vega = spot * norm.pdf(d1) * sqrt_t / 100.0
+
+    return {
+        "delta": round(delta, 4),
+        "gamma": round(gamma, 6),
+        "theta": round(theta, 4),
+        "vega": round(vega, 4),
+    }
 
 
 class SellPutStrategy:
@@ -99,6 +147,37 @@ class SellPutStrategy:
 
             implied_vol = row.get("impliedVolatility", 0) or 0
 
+            # 计算希腊字母
+            time_to_expiry_years = days_to_expiry / 365.0
+            greeks = _bsm_put_greeks(
+                spot=current_price,
+                strike=strike,
+                time_to_expiry_years=time_to_expiry_years,
+                risk_free_rate=0.045,
+                implied_vol=implied_vol,
+            )
+
+            # 计算预期收益（Expected Value）
+            # BSM Put 理论价格 = K·e^(-rT)·N(-d2) - S·N(-d1)
+            # 即风险中性下 E[max(K - S_T, 0)] 的贴现值
+            risk_free_rate = 0.045
+            d1 = (
+                math.log(current_price / strike)
+                + (risk_free_rate + 0.5 * implied_vol ** 2) * time_to_expiry_years
+            ) / (implied_vol * math.sqrt(time_to_expiry_years))
+            d2 = d1 - implied_vol * math.sqrt(time_to_expiry_years)
+            bsm_put_price = (
+                strike * math.exp(-risk_free_rate * time_to_expiry_years) * norm.cdf(-d2)
+                - current_price * norm.cdf(-d1)
+            )
+
+            prob_otm = 1 - abs(greeks["delta"])
+            max_profit = bid * 100
+            max_loss_amount = (strike - bid) * 100
+            # 卖方 EV = (收到的权利金 - BSM 理论价) × 100
+            # 正值 = 权利金高于理论公允价，卖方有正期望
+            expected_value = round((bid - bsm_put_price) * 100, 2)
+
             opportunities.append({
                 "ticker": ticker,
                 "strike": strike,
@@ -111,8 +190,15 @@ class SellPutStrategy:
                 "volume": row.get("volume", 0) or 0,
                 "otmPercentage": round(otm_percentage * 100, 2),
                 "annualizedReturn": round(annualized_return * 100, 2),
-                "maxLoss": round(strike - bid, 2),
+                "maxProfit": round(max_profit, 2),
+                "maxLoss": round(max_loss_amount, 2),
+                "expectedValue": expected_value,
+                "probOTM": round(prob_otm * 100, 1),
                 "currentPrice": current_price,
+                "delta": greeks["delta"],
+                "gamma": greeks["gamma"],
+                "theta": greeks["theta"],
+                "vega": greeks["vega"],
             })
 
         # 按年化收益率排序

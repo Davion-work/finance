@@ -81,6 +81,14 @@
             font-weight: 500;
             border-bottom: 1px solid #2a3a4a;
             white-space: nowrap;
+            cursor: help;
+            position: relative;
+        }
+        th[title] {
+            border-bottom: 1px dashed #4a6a7a;
+        }
+        th[title]:hover {
+            color: #cfd8dc;
         }
         td { padding: 8px 10px; border-bottom: 1px solid #1a2a3a; }
         tr:hover td { background: #1a2a3a; }
@@ -110,6 +118,148 @@
         .highlight { color: #4fc3f7; font-weight: 600; }
         .positive { color: #81c784; }
         .warning { color: #ffb74d; }
+
+        /* 推荐标记 */
+        .rating-badge {
+            display: inline-block;
+            font-size: 0.68rem;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            font-weight: 600;
+        }
+        .rating-recommended { background: #1b5e20; color: #81c784; }
+        .rating-watchlist { background: #263238; color: #78909c; }
+
+        /* 折叠区域 */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            margin-top: 16px;
+            background: #162030;
+            border: 1px solid #1e3040;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #78909c;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        .collapsible-header:hover { background: #1a2a3a; }
+        .collapsible-header .arrow {
+            transition: transform 0.2s;
+            font-size: 0.7rem;
+        }
+        .collapsible-header.open .arrow { transform: rotate(90deg); }
+        .collapsible-body { display: none; }
+        .collapsible-body.open { display: block; }
+        .section-label {
+            font-size: 0.82rem;
+            color: #81c784;
+            font-weight: 600;
+            margin: 14px 0 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 汇总结论区域 */
+        .summary-box {
+            display: none;
+            margin-bottom: 24px;
+            padding: 18px 22px;
+            background: linear-gradient(135deg, #1a2a3a, #162838);
+            border: 1px solid #2a4a5a;
+            border-radius: 10px;
+            line-height: 1.8;
+        }
+        .summary-box h3 {
+            font-size: 1rem;
+            color: #4fc3f7;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .summary-text { font-size: 0.85rem; color: #b0bec5; white-space: pre-line; }
+        .summary-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: #0f1923;
+            border: 1px solid #263238;
+            border-radius: 8px;
+            padding: 10px 16px;
+            min-width: 120px;
+        }
+        .stat-card .stat-label { font-size: 0.72rem; color: #78909c; }
+        .stat-card .stat-value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
+
+        /* Tab 导航 */
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #1a2a3a;
+            margin-bottom: 0;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 24px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #78909c;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: #b0bec5; }
+        .tab-btn.active-leaps { color: #81c784; border-bottom-color: #81c784; }
+        .tab-btn.active-sp { color: #ffb74d; border-bottom-color: #ffb74d; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* 参数说明区域 */
+        .field-description {
+            margin-top: 20px;
+            padding: 18px 24px;
+            background: #162030;
+            border: 1px solid #1e3040;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            color: #90a4ae;
+            line-height: 1.5;
+        }
+        .field-description h4 {
+            font-size: 0.95rem;
+            color: #b0bec5;
+            margin-bottom: 14px;
+            font-weight: 600;
+        }
+        .field-item {
+            display: flex;
+            align-items: baseline;
+            padding: 6px 0;
+            border-bottom: 1px solid #1a2a3a;
+        }
+        .field-item:last-child { border-bottom: none; }
+        .field-name {
+            color: #4fc3f7;
+            font-weight: 600;
+            min-width: 90px;
+            flex-shrink: 0;
+        }
+        .field-expect {
+            color: #81c784;
+            font-size: 0.82rem;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -149,46 +299,197 @@
     </div>
 
     <div class="main">
+        <!-- 汇总结论 -->
+        <div class="summary-box" id="summaryBox">
+            <h3>📊 总体分析结论</h3>
+            <div class="summary-text" id="summaryText"></div>
+            <div class="summary-stats" id="summaryStats"></div>
+        </div>
+
         <div id="results" style="display:none;">
-            <div class="section">
-                <h2 class="leaps">LEAPS Call 机会 <span class="badge" id="leapsCount">0</span></h2>
+            <!-- Tab 导航 -->
+            <div class="tab-nav">
+                <button class="tab-btn active-sp" id="tabSellPut" onclick="switchTab('sellPut')">
+                    Sell Put 机会 <span class="badge" id="sellPutCount">0</span>
+                </button>
+                <button class="tab-btn" id="tabLeaps" onclick="switchTab('leaps')">
+                    LEAPS Call 机会 <span class="badge" id="leapsCount">0</span>
+                </button>
+            </div>
+
+            <!-- Sell Put Tab -->
+            <div class="tab-content active" id="contentSellPut">
+                <div class="section-label">⭐ 推荐操作 <span class="badge" id="spRecommendedCount">0</span></div>
+                <table id="sellPutTable">
+                    <thead id="spTheadMain">
+                        <tr>
+                            <th title="股票代码">标的</th>
+                            <th title="愿意接盘的价格，越低安全边际越高">行权价</th>
+                            <th title="期权合约到期日">到期日</th>
+                            <th title="距到期剩余天数，14~60天为宜">天数</th>
+                            <th title="卖出 Put 可收取的权利金，越高收益越好">权利金</th>
+                            <th title="隐含波动率，反映市场预期波动。IV 越高权利金越贵，卖方越有利。预期: 30%~80%">IV</th>
+                            <th title="虚值程度 = (现价-行权价)/现价。越大离被行权越远。预期: 5%~15%">OTM%</th>
+                            <th title="Put Delta 为负值，绝对值越小越安全。预期: -0.15 ~ -0.35">Delta</th>
+                            <th title="Delta 的变化速率，越大说明 Delta 对价格变化越敏感">Gamma</th>
+                            <th title="每日时间价值衰减金额，对卖方有利（赚取时间价值）">Theta</th>
+                            <th title="(权利金/行权价) × (365/天数)，衡量卖 Put 回报率。预期: >15%">年化收益</th>
+                            <th title="到期时期权作废（OTM）的概率，即卖方全额赚取权利金的概率">胜率</th>
+                            <th title="(收到权利金 - BSM理论价) × 100。正值=权利金高于公允价，卖方有正期望">预期收益</th>
+                            <th title="(行权价 - 权利金) × 100股，被行权时最大单张合约亏损">最大亏损</th>
+                            <th title="未平仓合约数，衡量流动性。预期: >50">OI</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="collapsible-header" id="spWatchlistToggle" onclick="toggleCollapse('spWatchlist')">
+                    <span class="arrow" id="spWatchlistArrow">▶</span>
+                    可关注（不完全符合推荐标准）<span class="badge" id="spWatchlistCount">0</span>
+                </div>
+                <div class="collapsible-body" id="spWatchlistBody">
+                    <table id="sellPutWatchlistTable">
+                        <thead>
+                            <tr>
+                                <th title="股票代码">标的</th>
+                                <th title="愿意接盘的价格，越低安全边际越高">行权价</th>
+                                <th title="期权合约到期日">到期日</th>
+                                <th title="距到期剩余天数，14~60天为宜">天数</th>
+                                <th title="卖出 Put 可收取的权利金，越高收益越好">权利金</th>
+                                <th title="隐含波动率，反映市场预期波动。IV 越高权利金越贵，卖方越有利。预期: 30%~80%">IV</th>
+                                <th title="虚值程度 = (现价-行权价)/现价。越大离被行权越远。预期: 5%~15%">OTM%</th>
+                                <th title="Put Delta 为负值，绝对值越小越安全。预期: -0.15 ~ -0.35">Delta</th>
+                                <th title="Delta 的变化速率，越大说明 Delta 对价格变化越敏感">Gamma</th>
+                                <th title="每日时间价值衰减金额，对卖方有利（赚取时间价值）">Theta</th>
+                                <th title="(权利金/行权价) × (365/天数)，衡量卖 Put 回报率。预期: >15%">年化收益</th>
+                                <th title="到期时期权作废（OTM）的概率，即卖方全额赚取权利金的概率">胜率</th>
+                                <th title="(收到权利金 - BSM理论价) × 100。正值=权利金高于公允价，卖方有正期望">预期收益</th>
+                                <th title="(行权价 - 权利金) × 100股，被行权时最大单张合约亏损">最大亏损</th>
+                                <th title="未平仓合约数，衡量流动性。预期: >50">OI</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="field-description">
+                    <h4>📖 字段说明（按年化收益率降序排列）</h4>
+                    <div class="field-item"><span class="field-name">行权价</span>愿意接盘的价格，越低安全边际越高</div>
+                    <div class="field-item"><span class="field-name">权利金</span>卖出 Put 可收取的权利金（Bid 价），越高收益越好</div>
+                    <div class="field-item"><span class="field-name">IV</span>隐含波动率，反映市场对未来波动的预期，IV 越高权利金越贵<span class="field-expect">预期: 30%~80%</span></div>
+                    <div class="field-item"><span class="field-name">OTM%</span>虚值程度 = (现价-行权价)/现价，越大说明距离被行权越远、安全边际越高<span class="field-expect">预期: 5%~15%</span></div>
+                    <div class="field-item"><span class="field-name">Delta</span>期权价格对标的价格的敏感度，Put Delta 为负值，绝对值越小越安全<span class="field-expect">预期: -0.15 ~ -0.35</span></div>
+                    <div class="field-item"><span class="field-name">Gamma</span>Delta 的变化速率，Gamma 越大说明 Delta 变化越快，风险暴露越动态</div>
+                    <div class="field-item"><span class="field-name">Theta</span>每日时间价值衰减金额，对卖方有利（赚取时间价值）</div>
+                    <div class="field-item" style="flex-direction:column;gap:4px">
+                        <div><span class="field-name">年化收益</span>衡量 Cash-Secured Put 的投资回报率<span class="field-expect">预期: ≥20%</span></div>
+                        <div style="color:#78909c;font-size:0.82rem;padding-left:90px">
+                            公式：(权利金 ÷ 行权价) × (365 ÷ 天数) × 100%<br>
+                            · 分子「权利金÷行权价」= 单次收益率（行权价即现金担保卖 Put 的保证金占用）<br>
+                            · 分母「365÷天数」= 年化折算倍数，将短期收益率换算为等效年收益<br>
+                            · 例：权利金 $18 / 行权价 $285 = 6.3%，合约 17 天，年化 = 6.3% × 21.5 = 136%
+                        </div>
+                    </div>
+                    <div class="field-item"><span class="field-name">胜率</span>到期时期权作废（OTM）的概率 = 1 - |Delta|，即卖方全额赚取权利金的概率<span class="field-expect">预期: ≥65%</span></div>
+                    <div class="field-item" style="flex-direction:column;gap:4px">
+                        <div><span class="field-name">预期收益</span>基于 BSM 模型的单张合约期望盈亏<span class="field-expect">正值 = 正期望</span></div>
+                        <div style="color:#78909c;font-size:0.82rem;padding-left:90px">
+                            公式：(收到的权利金 - BSM Put 理论价) × 100 股<br>
+                            · BSM Put 理论价 = 风险中性下 E[max(K-S_T, 0)] 的贴现值，即期权的公允成本<br>
+                            · 正值说明市场给出的权利金高于理论公允价，卖方有正期望<br>
+                            · 负值说明权利金偏低，卖方期望亏损，不建议操作
+                        </div>
+                    </div>
+                    <div class="field-item"><span class="field-name">最大亏损</span>(行权价 - 权利金) × 100股，即被行权时单张合约的最大亏损金额</div>
+                    <div class="field-item"><span class="field-name">OI</span>未平仓合约数，衡量流动性<span class="field-expect">预期: >50</span></div>
+                </div>
+                <div class="field-description" style="margin-top:12px;border-left:3px solid #81c784;">
+                    <h4>⭐ 推荐标准（同时满足以下全部条件才标记为「推荐」）</h4>
+                    <div class="field-item"><span class="field-name">OTM%</span>≥ 7% — 安全边际足够，标的需下跌超过 7% 才会被行权<span class="field-expect">防守优先</span></div>
+                    <div class="field-item"><span class="field-name">年化收益</span>≥ 20% — 即便考虑偶尔被行权，长期回报率仍有吸引力<span class="field-expect">收益底线</span></div>
+                    <div class="field-item"><span class="field-name">|Delta|</span>≤ 0.35 — 被行权概率较低（约 35% 以下），卖方胜率高<span class="field-expect">概率优势</span></div>
+                    <div class="field-item"><span class="field-name">OI</span>≥ 100 — 有足够流动性，进出场不会有明显滑点<span class="field-expect">流动性保障</span></div>
+                </div>
+            </div>
+
+            <!-- LEAPS Call Tab -->
+            <div class="tab-content" id="contentLeaps">
+                <div class="section-label">⭐ 推荐操作 <span class="badge" id="leapsRecommendedCount">0</span></div>
                 <table id="leapsTable">
                     <thead>
                         <tr>
-                            <th>标的</th>
-                            <th>行权价</th>
-                            <th>到期日</th>
-                            <th>天数</th>
-                            <th>价格</th>
-                            <th>Delta</th>
-                            <th>IV</th>
-                            <th>杠杆</th>
-                            <th>盈亏平衡</th>
-                            <th>OI</th>
+                            <th title="股票代码">标的</th>
+                            <th title="期权的执行价格">行权价</th>
+                            <th title="期权合约到期日，LEAPS 通常 >180 天">到期日</th>
+                            <th title="距到期剩余天数。预期: ≥180天">天数</th>
+                            <th title="期权最新成交价，即买入成本">价格</th>
+                            <th title="标的每涨$1期权涨多少。预期: 0.50~0.80">Delta</th>
+                            <th title="Delta 的变化速率，越大说明 Delta 加速变化">Gamma</th>
+                            <th title="每日时间价值衰减，买方每天亏损的金额">Theta</th>
+                            <th title="隐含波动率，IV 越低买入成本越划算。预期: <60%">IV</th>
+                            <th title="现价/期权价格，用小资金撬动大标的的倍数">杠杆</th>
+                            <th title="行权价+期权价格，标的到期需涨到此价才不亏">盈亏平衡</th>
+                            <th title="到期时期权有价值（ITM）的概率">胜率</th>
+                            <th title="(BSM理论价 - 买入价) × 100。正值=市场定价偏低，有正期望">预期收益</th>
+                            <th title="未平仓合约数，衡量流动性。预期: >100">OI</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
-            </div>
-            <div class="section">
-                <h2 class="sell-put">Sell Put 机会 <span class="badge" id="sellPutCount">0</span></h2>
-                <table id="sellPutTable">
-                    <thead>
-                        <tr>
-                            <th>标的</th>
-                            <th>行权价</th>
-                            <th>到期日</th>
-                            <th>天数</th>
-                            <th>Bid</th>
-                            <th>IV</th>
-                            <th>OTM%</th>
-                            <th>年化收益</th>
-                            <th>最大亏损</th>
-                            <th>OI</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <div class="collapsible-header" id="leapsWatchlistToggle" onclick="toggleCollapse('leapsWatchlist')">
+                    <span class="arrow" id="leapsWatchlistArrow">▶</span>
+                    可关注（不完全符合推荐标准）<span class="badge" id="leapsWatchlistCount">0</span>
+                </div>
+                <div class="collapsible-body" id="leapsWatchlistBody">
+                    <table id="leapsWatchlistTable">
+                        <thead>
+                            <tr>
+                                <th title="股票代码">标的</th>
+                                <th title="期权的执行价格">行权价</th>
+                                <th title="期权合约到期日，LEAPS 通常 >180 天">到期日</th>
+                                <th title="距到期剩余天数。预期: ≥180天">天数</th>
+                                <th title="期权最新成交价，即买入成本">价格</th>
+                                <th title="标的每涨$1期权涨多少。预期: 0.50~0.80">Delta</th>
+                                <th title="Delta 的变化速率，越大说明 Delta 加速变化">Gamma</th>
+                                <th title="每日时间价值衰减，买方每天亏损的金额">Theta</th>
+                                <th title="隐含波动率，IV 越低买入成本越划算。预期: <60%">IV</th>
+                                <th title="现价/期权价格，用小资金撬动大标的的倍数">杠杆</th>
+                                <th title="行权价+期权价格，标的到期需涨到此价才不亏">盈亏平衡</th>
+                                <th title="到期时期权有价值（ITM）的概率">胜率</th>
+                                <th title="(BSM理论价 - 买入价) × 100。正值=市场定价偏低，有正期望">预期收益</th>
+                                <th title="未平仓合约数，衡量流动性。预期: >100">OI</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="field-description">
+                    <h4>📖 字段说明（按杠杆倍数降序排列）</h4>
+                    <div class="field-item"><span class="field-name">行权价</span>期权的执行价格</div>
+                    <div class="field-item"><span class="field-name">价格</span>期权最新成交价，即买入成本</div>
+                    <div class="field-item"><span class="field-name">Delta</span>标的每涨 $1，期权价格变动金额。0.6 表示标的涨 $1 期权涨 $0.6<span class="field-expect">预期: 0.50~0.80</span></div>
+                    <div class="field-item"><span class="field-name">Gamma</span>Delta 的变化速率，Gamma 越大说明 Delta 加速变化</div>
+                    <div class="field-item"><span class="field-name">Theta</span>每日时间价值衰减，对买方不利（每天亏这么多）</div>
+                    <div class="field-item"><span class="field-name">IV</span>隐含波动率，IV 越低买入成本越划算<span class="field-expect">预期: &lt;60%</span></div>
+                    <div class="field-item"><span class="field-name">杠杆</span>现价/期权价格，用小资金撬动大标的的倍数</div>
+                    <div class="field-item"><span class="field-name">盈亏平衡</span>行权价 + 期权价格，标的到期需涨到此价才不亏</div>
+                    <div class="field-item"><span class="field-name">胜率</span>到期时期权有价值（ITM）的概率 = Delta，即买方盈利的概率<span class="field-expect">预期: 50%~80%</span></div>
+                    <div class="field-item" style="flex-direction:column;gap:4px">
+                        <div><span class="field-name">预期收益</span>基于 BSM 模型的单张合约期望盈亏<span class="field-expect">正值 = 正期望</span></div>
+                        <div style="color:#78909c;font-size:0.82rem;padding-left:90px">
+                            公式：(BSM Call 理论价 - 实际买入价) × 100 股<br>
+                            · BSM Call 理论价 = S·N(d1) - K·e^(-rT)·N(d2)，即风险中性下期权的公允价值<br>
+                            · 正值说明市场定价低于理论公允价，买入有正期望<br>
+                            · 负值说明市场定价偏高，期权偏贵
+                        </div>
+                    </div>
+                    <div class="field-item"><span class="field-name">OI</span>未平仓合约数，衡量流动性<span class="field-expect">预期: >100</span></div>
+                </div>
+                <div class="field-description" style="margin-top:12px;border-left:3px solid #81c784;">
+                    <h4>⭐ 推荐标准（同时满足以下全部条件才标记为「推荐」）</h4>
+                    <div class="field-item"><span class="field-name">Delta</span>0.55 ~ 0.75 — 深度实值偏中性，标的涨跌与期权高度联动，同时保留杠杆优势<span class="field-expect">联动性</span></div>
+                    <div class="field-item"><span class="field-name">IV</span>&lt; 60% — 隐含波动率不过高，避免为过贵的时间价值买单<span class="field-expect">成本控制</span></div>
+                    <div class="field-item"><span class="field-name">杠杆</span>≥ 3x — 用 1/3 以下的资金获得等效正股暴露，杠杆效率有意义<span class="field-expect">资金效率</span></div>
+                    <div class="field-item"><span class="field-name">OI</span>≥ 200 — 远期合约流动性本身偏弱，需更高门槛确保可交易<span class="field-expect">流动性保障</span></div>
+                </div>
             </div>
         </div>
 
@@ -287,45 +588,160 @@
             }, 2000);
         }
 
+        function switchTab(tab) {
+            const tabSP = document.getElementById('tabSellPut');
+            const tabLeaps = document.getElementById('tabLeaps');
+            const contentSP = document.getElementById('contentSellPut');
+            const contentLeaps = document.getElementById('contentLeaps');
+
+            if (tab === 'sellPut') {
+                tabSP.className = 'tab-btn active-sp';
+                tabLeaps.className = 'tab-btn';
+                contentSP.className = 'tab-content active';
+                contentLeaps.className = 'tab-content';
+            } else {
+                tabSP.className = 'tab-btn';
+                tabLeaps.className = 'tab-btn active-leaps';
+                contentSP.className = 'tab-content';
+                contentLeaps.className = 'tab-content active';
+            }
+        }
+
+        function renderSummary(summary) {
+            if (!summary) return;
+            const box = document.getElementById('summaryBox');
+            box.style.display = 'block';
+            document.getElementById('summaryText').textContent = summary.text;
+
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="stat-label">波动环境</div>
+                    <div class="stat-value" style="color:${summary.overallAvgIV > 50 ? '#ffb74d' : '#81c784'}">${summary.ivEnvironment}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">平均 IV</div>
+                    <div class="stat-value">${summary.overallAvgIV}%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Sell Put 机会</div>
+                    <div class="stat-value" style="color:#ffb74d">${summary.sellPut.count}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">SP 平均年化</div>
+                    <div class="stat-value" style="color:#81c784">${summary.sellPut.avgReturn}%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">LEAPS 机会</div>
+                    <div class="stat-value" style="color:#81c784">${summary.leaps.count}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">LEAPS 平均杠杆</div>
+                    <div class="stat-value">${summary.leaps.avgLeverage}x</div>
+                </div>
+            `;
+            document.getElementById('summaryStats').innerHTML = statsHtml;
+        }
+
+        function toggleCollapse(id) {
+            const body = document.getElementById(id + 'Body');
+            const arrow = document.getElementById(id + 'Arrow');
+            const header = document.getElementById(id + 'Toggle');
+            const isOpen = body.classList.contains('open');
+            if (isOpen) {
+                body.classList.remove('open');
+                header.classList.remove('open');
+            } else {
+                body.classList.add('open');
+                header.classList.add('open');
+            }
+        }
+
+        function evColor(val) {
+            if (val > 0) return 'color:#81c784';
+            if (val < 0) return 'color:#ef5350';
+            return '';
+        }
+
+        function buildSpRow(item) {
+            return `<tr>
+                <td class="highlight">${item.ticker}</td>
+                <td>$${item.strike}</td>
+                <td>${item.expirationDate}</td>
+                <td>${item.daysToExpiry}d</td>
+                <td>$${item.bid.toFixed(2)}</td>
+                <td>${(item.impliedVolatility * 100).toFixed(1)}%</td>
+                <td class="warning">${item.otmPercentage}%</td>
+                <td>${item.delta}</td>
+                <td>${item.gamma}</td>
+                <td>${item.theta}</td>
+                <td class="positive">${item.annualizedReturn}%</td>
+                <td class="positive">${item.probOTM}%</td>
+                <td style="${evColor(item.expectedValue)}">$${item.expectedValue}</td>
+                <td>$${item.maxLoss.toLocaleString()}</td>
+                <td>${item.openInterest}</td>
+            </tr>`;
+        }
+
+        function buildLeapsRow(item) {
+            return `<tr>
+                <td class="highlight">${item.ticker}</td>
+                <td>$${item.strike}</td>
+                <td>${item.expirationDate}</td>
+                <td>${item.daysToExpiry}d</td>
+                <td>$${item.lastPrice}</td>
+                <td>${item.delta}</td>
+                <td>${item.gamma}</td>
+                <td>${item.theta}</td>
+                <td>${(item.impliedVolatility * 100).toFixed(1)}%</td>
+                <td class="positive">${item.leverage}x</td>
+                <td>$${item.breakeven}</td>
+                <td class="positive">${item.probITM}%</td>
+                <td style="${evColor(item.expectedValue)}">$${item.expectedValue}</td>
+                <td>${item.openInterest}</td>
+            </tr>`;
+        }
+
         function renderResults(data) {
             document.getElementById('results').style.display = 'block';
             document.getElementById('emptyState').style.display = 'none';
 
-            const leapsBody = document.querySelector('#leapsTable tbody');
-            leapsBody.innerHTML = '';
-            document.getElementById('leapsCount').textContent = data.leaps_call.length;
-            data.leaps_call.forEach(item => {
-                leapsBody.innerHTML += `<tr>
-                    <td class="highlight">${item.ticker}</td>
-                    <td>$${item.strike}</td>
-                    <td>${item.expirationDate}</td>
-                    <td>${item.daysToExpiry}d</td>
-                    <td>$${item.lastPrice}</td>
-                    <td>${item.delta}</td>
-                    <td>${(item.impliedVolatility * 100).toFixed(1)}%</td>
-                    <td class="positive">${item.leverage}x</td>
-                    <td>$${item.breakeven}</td>
-                    <td>${item.openInterest}</td>
-                </tr>`;
-            });
+            renderSummary(data.summary);
+
+            // Sell Put: 分组
+            const spRec = data.sell_put.filter(i => i.rating === 'recommended');
+            const spWatch = data.sell_put.filter(i => i.rating !== 'recommended');
+
+            document.getElementById('sellPutCount').textContent = data.sell_put.length;
+            document.getElementById('spRecommendedCount').textContent = spRec.length;
+            document.getElementById('spWatchlistCount').textContent = spWatch.length;
 
             const spBody = document.querySelector('#sellPutTable tbody');
-            spBody.innerHTML = '';
-            document.getElementById('sellPutCount').textContent = data.sell_put.length;
-            data.sell_put.forEach(item => {
-                spBody.innerHTML += `<tr>
-                    <td class="highlight">${item.ticker}</td>
-                    <td>$${item.strike}</td>
-                    <td>${item.expirationDate}</td>
-                    <td>${item.daysToExpiry}d</td>
-                    <td>$${item.bid}</td>
-                    <td>${(item.impliedVolatility * 100).toFixed(1)}%</td>
-                    <td class="warning">${item.otmPercentage}%</td>
-                    <td class="positive">${item.annualizedReturn}%</td>
-                    <td>$${item.maxLoss}</td>
-                    <td>${item.openInterest}</td>
-                </tr>`;
-            });
+            spBody.innerHTML = spRec.map(buildSpRow).join('');
+
+            const spWatchBody = document.querySelector('#sellPutWatchlistTable tbody');
+            spWatchBody.innerHTML = spWatch.map(buildSpRow).join('');
+
+            // LEAPS Call: 分组
+            const leapsRec = data.leaps_call.filter(i => i.rating === 'recommended');
+            const leapsWatch = data.leaps_call.filter(i => i.rating !== 'recommended');
+
+            document.getElementById('leapsCount').textContent = data.leaps_call.length;
+            document.getElementById('leapsRecommendedCount').textContent = leapsRec.length;
+            document.getElementById('leapsWatchlistCount').textContent = leapsWatch.length;
+
+            const leapsBody = document.querySelector('#leapsTable tbody');
+            leapsBody.innerHTML = leapsRec.map(buildLeapsRow).join('');
+
+            const leapsWatchBody = document.querySelector('#leapsWatchlistTable tbody');
+            leapsWatchBody.innerHTML = leapsWatch.map(buildLeapsRow).join('');
+
+            // 折叠区默认关闭
+            document.getElementById('spWatchlistBody').classList.remove('open');
+            document.getElementById('spWatchlistToggle').classList.remove('open');
+            document.getElementById('leapsWatchlistBody').classList.remove('open');
+            document.getElementById('leapsWatchlistToggle').classList.remove('open');
+
+            switchTab('sellPut');
 
             if (data.meta) {
                 const info = `已扫描 ${data.meta.scannedFromCache}/${data.meta.watchlistSize} 个标的缓存`;

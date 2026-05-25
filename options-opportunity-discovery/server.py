@@ -38,6 +38,120 @@ def not_found(e):
     return jsonify({"error": "not found"}), 404
 
 
+def _rate_sell_put(item: dict) -> str:
+    """评估 Sell Put 机会等级
+
+    推荐标准：OTM% ≥ 7%, 年化 ≥ 20%, |Delta| ≤ 0.35, OI ≥ 100
+    """
+    otm = item.get("otmPercentage", 0)
+    annual = item.get("annualizedReturn", 0)
+    delta = abs(item.get("delta", 0))
+    oi = item.get("openInterest", 0)
+
+    if otm >= 7 and annual >= 20 and delta <= 0.35 and oi >= 100:
+        return "recommended"
+    return "watchlist"
+
+
+def _rate_leaps_call(item: dict) -> str:
+    """评估 LEAPS Call 机会等级
+
+    推荐标准：Delta 0.55~0.75, IV < 60%, 杠杆 ≥ 3x, OI ≥ 200
+    """
+    delta = item.get("delta", 0)
+    iv = item.get("impliedVolatility", 0)
+    leverage = item.get("leverage", 0)
+    oi = item.get("openInterest", 0)
+
+    if 0.55 <= delta <= 0.75 and iv < 0.60 and leverage >= 3 and oi >= 200:
+        return "recommended"
+    return "watchlist"
+
+
+def _build_summary(leaps: list, sell_puts: list, watchlist_size: int, scanned_count: int) -> dict:
+    """生成期权机会的汇总分析结论"""
+    # LEAPS Call 汇总
+    leaps_tickers = sorted(set(item["ticker"] for item in leaps))
+    leaps_avg_iv = 0.0
+    leaps_avg_delta = 0.0
+    leaps_avg_leverage = 0.0
+    if leaps:
+        leaps_avg_iv = sum(item["impliedVolatility"] for item in leaps) / len(leaps)
+        leaps_avg_delta = sum(item["delta"] for item in leaps) / len(leaps)
+        leaps_avg_leverage = sum(item["leverage"] for item in leaps) / len(leaps)
+
+    # Sell Put 汇总
+    sp_tickers = sorted(set(item["ticker"] for item in sell_puts))
+    sp_avg_return = 0.0
+    sp_avg_otm = 0.0
+    sp_avg_iv = 0.0
+    sp_avg_delta = 0.0
+    if sell_puts:
+        sp_avg_return = sum(item["annualizedReturn"] for item in sell_puts) / len(sell_puts)
+        sp_avg_otm = sum(item["otmPercentage"] for item in sell_puts) / len(sell_puts)
+        sp_avg_iv = sum(item["impliedVolatility"] for item in sell_puts) / len(sell_puts)
+        sp_avg_delta = sum(item["delta"] for item in sell_puts) / len(sell_puts)
+
+    # 高 IV 环境判断
+    all_ivs = [item["impliedVolatility"] for item in leaps] + [item["impliedVolatility"] for item in sell_puts]
+    overall_avg_iv = sum(all_ivs) / len(all_ivs) if all_ivs else 0
+    iv_environment = "高波动" if overall_avg_iv > 0.5 else ("中等波动" if overall_avg_iv > 0.3 else "低波动")
+
+    # 生成文字结论
+    conclusions = []
+    conclusions.append(f"共扫描 {scanned_count}/{watchlist_size} 个标的，"
+                       f"发现 {len(leaps)} 个 LEAPS Call 机会、{len(sell_puts)} 个 Sell Put 机会。")
+    conclusions.append(f"当前整体隐含波动率环境：{iv_environment}（均值 {overall_avg_iv * 100:.1f}%）。")
+
+    sp_recommended = [item for item in sell_puts if item.get("rating") == "recommended"]
+    leaps_recommended = [item for item in leaps if item.get("rating") == "recommended"]
+
+    if sell_puts:
+        conclusions.append(f"Sell Put：共 {len(sell_puts)} 个机会，其中 {len(sp_recommended)} 个达到推荐标准。")
+        if sp_recommended:
+            top3_sp = sp_recommended[:3]
+            top_sp_names = "、".join(f"{item['ticker']}(年化{item['annualizedReturn']}%)" for item in top3_sp)
+            conclusions.append(f"Sell Put 推荐操作：{top_sp_names}，平均安全边际 {sp_avg_otm:.1f}%。")
+        if sp_avg_return > 50:
+            conclusions.append("⚠️ 年化收益率普遍偏高，注意高收益往往伴随高风险，建议控制仓位。")
+
+    if leaps:
+        conclusions.append(f"LEAPS Call：共 {len(leaps)} 个机会，其中 {len(leaps_recommended)} 个达到推荐标准。")
+        if leaps_recommended:
+            top3_leaps = leaps_recommended[:3]
+            top_leaps_names = "、".join(f"{item['ticker']}({item['leverage']}x杠杆)" for item in top3_leaps)
+            conclusions.append(f"LEAPS Call 推荐操作：{top_leaps_names}，平均 Delta {leaps_avg_delta:.2f}。")
+
+    if not leaps and not sell_puts:
+        conclusions.append("当前无符合筛选条件的机会，可尝试调整参数或刷新数据。")
+
+    if overall_avg_iv > 0.5:
+        conclusions.append("💡 高波动环境更适合卖方策略（Sell Put），买方策略（LEAPS Call）成本偏高需谨慎。")
+    elif overall_avg_iv < 0.3:
+        conclusions.append("💡 低波动环境下期权较便宜，适合布局 LEAPS Call 长线看多。")
+
+    return {
+        "text": "\n".join(conclusions),
+        "ivEnvironment": iv_environment,
+        "overallAvgIV": round(overall_avg_iv * 100, 1),
+        "leaps": {
+            "count": len(leaps),
+            "tickers": leaps_tickers,
+            "avgIV": round(leaps_avg_iv * 100, 1),
+            "avgDelta": round(leaps_avg_delta, 3),
+            "avgLeverage": round(leaps_avg_leverage, 1),
+        },
+        "sellPut": {
+            "count": len(sell_puts),
+            "tickers": sp_tickers,
+            "avgReturn": round(sp_avg_return, 1),
+            "avgOTM": round(sp_avg_otm, 1),
+            "avgIV": round(sp_avg_iv * 100, 1),
+            "avgDelta": round(sp_avg_delta, 3),
+        },
+    }
+
+
 @app.route("/api/scan", methods=["POST"])
 def scan_opportunities():
     """基于本地缓存数据全量扫描期权机会
@@ -69,9 +183,20 @@ def scan_opportunities():
     all_leaps.sort(key=lambda x: x["leverage"], reverse=True)
     all_sell_put.sort(key=lambda x: x["annualizedReturn"], reverse=True)
 
+    top_leaps = all_leaps[:100]
+    top_sell_put = all_sell_put[:100]
+
+    for item in top_sell_put:
+        item["rating"] = _rate_sell_put(item)
+    for item in top_leaps:
+        item["rating"] = _rate_leaps_call(item)
+
+    summary = _build_summary(top_leaps, top_sell_put, len(tickers), scanned_count)
+
     return jsonify({
-        "leaps_call": all_leaps[:100],
-        "sell_put": all_sell_put[:100],
+        "leaps_call": top_leaps,
+        "sell_put": top_sell_put,
+        "summary": summary,
         "meta": {
             "watchlistSize": len(tickers),
             "scannedFromCache": scanned_count,
