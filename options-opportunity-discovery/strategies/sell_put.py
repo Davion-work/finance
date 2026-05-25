@@ -22,7 +22,7 @@ class SellPutStrategy:
         min_annualized_return: float = 0.10,
         min_otm_percentage: float = 0.05,
         max_otm_percentage: float = 0.30,
-        min_days_to_expiry: int = 20,
+        min_days_to_expiry: int = 14,
         max_days_to_expiry: int = 60,
         min_open_interest: int = 50,
     ):

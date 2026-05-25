@@ -10,20 +10,29 @@ from pathlib import Path
 DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 WATCHLIST_FILE = DATA_DIR / "watchlist.json"
 
-# S&P 500 高流动性期权标的（精选 ~100 只最活跃的期权股票）
-# 完整 500 只可以后续扩展，初期用高流动性子集确保数据质量
-SP500_CORE = [
-    "AAPL", "MSFT", "AMZN", "NVDA", "GOOGL", "META", "TSLA", "BRK-B",
-    "UNH", "JNJ", "JPM", "V", "XOM", "PG", "MA", "HD", "CVX", "MRK",
-    "ABBV", "LLY", "PEP", "KO", "AVGO", "COST", "WMT", "MCD", "CSCO",
-    "ACN", "TMO", "ABT", "DHR", "NKE", "LIN", "NEE", "PM", "TXN", "UNP",
-    "RTX", "LOW", "AMGN", "HON", "UPS", "QCOM", "BA", "GS", "CAT", "SBUX",
-    "IBM", "AMD", "INTC", "GE", "AMAT", "ISRG", "NOW", "ADP", "BKNG",
-    "MDLZ", "ADI", "GILD", "SYK", "MMC", "LRCX", "DE", "REGN", "VRTX",
-    "CI", "ZTS", "BDX", "CME", "CB", "PLD", "SO", "DUK", "CL", "MO",
-    "APD", "SLB", "USB", "TGT", "PNC", "SCHW", "AXP", "COP", "EOG",
-    "ABNB", "PANW", "CRWD", "SNOW", "SQ", "SHOP", "NET", "DDOG", "ZS",
-    "COIN", "MARA", "PLTR", "SOFI", "RIVN", "LCID", "NIO", "ARM", "SMCI",
+# 默认关注池：AI + 中国科技（美股上市，20只）
+# 港股无个股期权数据，Sell Put 策略聚焦美股
+DEFAULT_WATCHLIST = [
+    "BABA",   # 阿里巴巴
+    "JD",     # 京东
+    "BIDU",   # 百度
+    "PDD",    # 拼多多
+    "NIO",    # 蔚来
+    "XPEV",   # 小鹏汽车
+    "LI",     # 理想汽车
+    "BILI",   # 哔哩哔哩
+    "TME",    # 腾讯音乐
+    "GDS",    # 万国数据
+    "NVDA",   # 英伟达
+    "AMD",    # AMD
+    "SMCI",   # 超微电脑
+    "ARM",    # ARM
+    "PLTR",   # Palantir
+    "AVGO",   # 博通
+    "TSM",    # 台积电
+    "MSFT",   # 微软
+    "GOOGL",  # 谷歌
+    "META",   # Meta
 ]
 
 
@@ -53,7 +62,7 @@ def save_watchlist(config: dict):
 def get_active_tickers() -> list[str]:
     """获取当前生效的关注池标的列表"""
     config = load_watchlist()
-    base_tickers = set(SP500_CORE)
+    base_tickers = set(DEFAULT_WATCHLIST)
 
     # 应用用户自定义
     custom_added = set(config.get("custom_added", []))
