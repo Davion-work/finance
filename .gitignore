@@ -1,6 +1,7 @@
 .claude
 .omc
-.env
 __pycache__/
 *.pyc
 options-opportunity-discovery/data/cache/
+options-opportunity-discovery/.env
+options-opportunity-discovery/.longbridgeapi
